@@ -1,19 +1,18 @@
-# Microphone-Volume-Lock
+# Microphone Volume Lock
 
-Microphone-Volume-Lock is a Windows application designed to lock the microphone volume at a specified level. It provides a graphical user interface for easy control and uses the NirCmd utility to manage system volume settings.
+Microphone Volume Lock is a Windows application designed to lock the microphone volume at a specified level. It provides a graphical user interface for easy control and uses the NirCmd utility to manage system volume settings.
 
 ## Features
 
-- Lock microphone volume at a user-defined level
-- GUI for easy control of microphone volume
+- GUI to lock microphone volume at a user-defined level
 - Ability to stop all NirCmd processes
 - Persistent settings across application restarts
 
 ## Prerequisites
 
 - Windows operating system
-- Go programming language (for development and building)
-- NirCmd utility (`nircmdc.exe`) in the same directory as the executable
+- Go programming language *(for development and building)
+- [NirCmd utility](https://www.nirsoft.net/utils/nircmd.html) installed on your machine (`nircmdc.exe`)
 
 ## Installation
 
@@ -27,14 +26,13 @@ Microphone-Volume-Lock is a Windows application designed to lock the microphone 
 
 To run the application in development mode:
 
-go run .
+`go run .`
 
 ### Building the Application
 
 To build the application as a Windows GUI application (without console window):
 
-go build -ldflags -H=windowsgui
-
+`go build -ldflags -H=windowsgui`
 
 This will create an executable named `Microphone-Volume-Lock.exe` in the current directory.
 
@@ -55,19 +53,9 @@ This will create an executable named `Microphone-Volume-Lock.exe` in the current
 - `lock_microphone_volume.bat`: Batch script to lock the microphone volume (legacy)
 - `nircmdc.exe`: NirCmd utility (required, not included in repository)
 
-## Development
-
-The application is written in Go using the Fyne toolkit for the GUI. It saves user preferences in a JSON file and uses NirCmd to control the system volume.
-
-To modify the application:
-
-1. Make changes to `main.go`
-2. Test your changes with `go run .`
-3. Build the application with `go build -ldflags -H=windowsgui`
-
 ## Contributing
 
-Contributions to Microphone-Volume-Lock are welcome. Please feel free to submit pull requests or create issues for bugs and feature requests.
+Contributions to Microphone Volume Lock are welcome. Please feel free to submit pull requests or create issues for bugs and feature requests.
 
 ## License
 
