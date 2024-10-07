@@ -10,6 +10,7 @@ import (
 	"fyne.io/fyne/v2/container"
 	"fyne.io/fyne/v2/data/binding"
 	"fyne.io/fyne/v2/dialog"
+	"fyne.io/fyne/v2/driver/desktop"
 	"fyne.io/fyne/v2/widget"
 )
 
@@ -119,6 +120,30 @@ func main() {
 
 	myWindow.SetContent(content)
 	myWindow.Resize(fyne.NewSize(400, content.MinSize().Height))
+	myWindow.SetCloseIntercept(func() {
+		myWindow.Hide()
+	})
+
+	// systray.Run(func() {
+	// 	systray.SetTitle("Microphone Volume Lock")
+	// 	systray.SetTooltip("Microphone Volume Lock")
+	// 	systray.AddMenuItem("Show", "Show app").Check()
+	// }, func() {})
+
+	menu := fyne.NewMenu("Microphone Volume Lock",
+		fyne.NewMenuItem("Show", func() {
+			myWindow.Show()
+		}),
+	)
+	if desk, ok := myApp.(desktop.App); ok {
+		// res, err := fyne.LoadResourceFromPath("icon.png")
+		// if err != nil {
+		// 	fmt.Println("Error loading resource: " + err.Error())
+		// 	return
+		// }
+		//desk.SetSystemTrayIcon(res)
+		desk.SetSystemTrayMenu(menu)
+	}
 
 	go func() {
 		for err := range errChan {

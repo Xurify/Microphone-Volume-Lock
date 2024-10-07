@@ -1,0 +1,8 @@
+Website = "https://github.com/Xurify/Microphone-Volume-Lock"
+
+[Details]
+Icon = "icon.png"
+Name = "Microphone Volume Lock"
+ID = "com.xurify.microphone_volume_lock"
+Version = "1.0.0"
+Build = 1
