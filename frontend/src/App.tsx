@@ -114,13 +114,12 @@ function App() {
             onValueChange={handleVolumeChange}
             disabled={state.isLocked}
             className="w-full rounded-lg"
-            color="gray"
+            color="blue"
           />
         </div>
 
         <Button
           onClick={handleStopAll}
-          //variant="outline"
           color="red"
           className="!w-full py-1 px-2 text-white rounded font-bold"
         >

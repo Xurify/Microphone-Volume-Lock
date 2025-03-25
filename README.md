@@ -6,10 +6,6 @@ A Windows application built with Wails that lets you lock your microphone volume
 
 - Lock microphone volume at any desired level
 - System tray integration for quick access
-- Native Windows menu system
-- Persistent settings across app restarts
-- Run at Windows startup option
-- Keyboard shortcuts for common actions
 - Built using Wails and React for a native feel
 
 ## Prerequisites
