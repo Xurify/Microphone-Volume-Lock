@@ -45,9 +45,12 @@ function App() {
   }, []);
 
   useEffect(() => {
-    const unsubscribe = EventsOn("lock-state-changed", (newLockState: boolean) => {
-      setState((prev) => ({ ...prev, isLocked: newLockState }));
-    });
+    const unsubscribe = EventsOn(
+      "lock-state-changed",
+      (newLockState: boolean) => {
+        setState((prev) => ({ ...prev, isLocked: newLockState }));
+      }
+    );
 
     return () => {
       unsubscribe();
@@ -89,13 +92,16 @@ function App() {
 
   return (
     <div className="container mx-auto p-2 max-w-md">
-      <div className="space-y-4">
+      <div className="space-y-4 px-[4px]">
         <Button
           onClick={handleLockToggle}
           className="!w-full py-2 px-4 !h-9 rounded font-bold"
-          color={state.isLocked ? "red" : "blue"}
+          variant={state.isLocked ? "surface" : "solid"}
+          color={"blue"}
         >
-          {state.isLocked ? "Unlock Microphone Volume" : "Lock Microphone Volume"}
+          {state.isLocked
+            ? "Unlock Microphone Volume"
+            : "Lock Microphone Volume"}
         </Button>
 
         <div className="space-y-2">
@@ -108,12 +114,13 @@ function App() {
             onValueChange={handleVolumeChange}
             disabled={state.isLocked}
             className="w-full rounded-lg"
+            color="gray"
           />
         </div>
 
         <Button
           onClick={handleStopAll}
-          variant="outline"
+          //variant="outline"
           color="red"
           className="!w-full py-1 px-2 text-white rounded font-bold"
         >

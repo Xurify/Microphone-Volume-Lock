@@ -21,6 +21,7 @@ func main() {
 		Title:            "Microphone Volume Lock",
 		Width:            400,
 		Height:           215,
+		MinWidth:         400,
 		Assets:           assets,
 		BackgroundColour: &options.RGBA{R: 27, G: 27, B: 27, A: 1},
 		OnStartup:        app.startup,
