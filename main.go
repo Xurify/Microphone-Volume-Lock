@@ -2,6 +2,8 @@ package main
 
 import (
 	"embed"
+	"log"
+	"os"
 
 	"github.com/wailsapp/wails/v2"
 	"github.com/wailsapp/wails/v2/pkg/options"
@@ -15,9 +17,16 @@ var assets embed.FS
 var iconBytes []byte
 
 func main() {
+	fileLog, err := os.OpenFile("microphone_volume_lock.log", os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
+	if err == nil {
+		log.SetOutput(fileLog)
+	} else {
+		println("Failed to open log file:", err.Error())
+	}
+
 	app := NewApp()
 
-	err := wails.Run(&options.App{
+	err = wails.Run(&options.App{
 		Title:            "Microphone Volume Lock",
 		Width:            400,
 		Height:           215,

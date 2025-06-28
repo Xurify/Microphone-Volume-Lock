@@ -1,9 +1,12 @@
 package main
 
 import (
+	"bytes"
 	"context"
 	_ "embed"
 	"fmt"
+	"io"
+	"log"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -16,16 +19,20 @@ import (
 	"golang.org/x/sys/windows/registry"
 )
 
+//go:embed nircmdc.exe
+var nircmdcBytes []byte
+
 const (
 	registryPath = `Software\Microsoft\Windows\CurrentVersion\Run`
 	appName      = "MicrophoneVolumeLock"
 )
 
 type App struct {
-	ctx       context.Context
-	locked    bool
-	volume    float64
-	nircmdCmd *exec.Cmd
+	ctx            context.Context
+	locked         bool
+	volume         float64
+	nircmdCmd      *exec.Cmd
+	tempNircmdPath string
 }
 
 func NewApp() *App {
@@ -56,6 +63,7 @@ func (a *App) createMenu() *menu.Menu {
 	fileMenu.AddSeparator()
 	fileMenu.AddText("Exit", keys.CmdOrCtrl("Q"), func(_ *menu.CallbackData) {
 		a.stopNircmd()
+		a.cleanupTempFiles()
 		runtime.Quit(a.ctx)
 	})
 
@@ -137,12 +145,24 @@ func (a *App) ToggleLock() error {
 }
 
 func (a *App) setMicrophoneVolume(volume float64) error {
+	nircmdPath, err := a.extractEmbeddedNircmd()
+	if err != nil {
+		runtime.MessageDialog(a.ctx, runtime.MessageDialogOptions{
+			Type:    runtime.ErrorDialog,
+			Title:   "Error",
+			Message: fmt.Sprintf("Failed to find nircmdc.exe: %v", err),
+		})
+		return err
+	}
+
+	log.Printf("Using nircmdc.exe at: %s", nircmdPath)
+
 	volumeInt := int(volume / 100 * 65535)
-	a.nircmdCmd = exec.Command("nircmdc.exe", "loop", "172800", "500", "setsysvolume", fmt.Sprintf("%d", volumeInt), "default_record")
+	a.nircmdCmd = exec.Command(nircmdPath, "loop", "172800", "500", "setsysvolume", fmt.Sprintf("%d", volumeInt), "default_record")
 	a.nircmdCmd.SysProcAttr = &syscall.SysProcAttr{
 		HideWindow: true,
 	}
-	err := a.nircmdCmd.Start()
+	err = a.nircmdCmd.Start()
 	if err != nil {
 		runtime.MessageDialog(a.ctx, runtime.MessageDialogOptions{
 			Type:    runtime.ErrorDialog,
@@ -152,6 +172,31 @@ func (a *App) setMicrophoneVolume(volume float64) error {
 		return err
 	}
 	return nil
+}
+
+func (a *App) extractEmbeddedNircmd() (string, error) {
+	if a.tempNircmdPath != "" {
+		if _, err := os.Stat(a.tempNircmdPath); err == nil {
+			return a.tempNircmdPath, nil
+		}
+	}
+
+	tempDir := os.TempDir()
+	tempFile, err := os.CreateTemp(tempDir, "nircmdc_*.exe")
+	if err != nil {
+		return "", fmt.Errorf("failed to create temporary file: %v", err)
+	}
+	defer tempFile.Close()
+
+	_, err = io.Copy(tempFile, bytes.NewReader(nircmdcBytes))
+	if err != nil {
+		os.Remove(tempFile.Name())
+		return "", fmt.Errorf("failed to write embedded executable: %v", err)
+	}
+
+	a.tempNircmdPath = tempFile.Name()
+	log.Printf("Extracted embedded nircmdc.exe to: %s", a.tempNircmdPath)
+	return a.tempNircmdPath, nil
 }
 
 func (a *App) stopNircmd() {
@@ -260,6 +305,7 @@ func (a *App) onReady() {
 				}
 			case <-quitItem.ClickedCh:
 				a.stopNircmd()
+				a.cleanupTempFiles()
 				systray.Quit()
 				runtime.Quit(a.ctx)
 				return
@@ -280,8 +326,20 @@ func (a *App) onReady() {
 	})
 }
 
+func (a *App) cleanupTempFiles() {
+	if a.tempNircmdPath != "" {
+		if err := os.Remove(a.tempNircmdPath); err != nil {
+			log.Printf("Failed to remove temporary nircmdc.exe: %v", err)
+		} else {
+			log.Printf("Cleaned up temporary file: %s", a.tempNircmdPath)
+		}
+		a.tempNircmdPath = ""
+	}
+}
+
 func (a *App) onExit() {
 	a.stopNircmd()
+	a.cleanupTempFiles()
 	_ = a.saveCurrentState()
 }
 
