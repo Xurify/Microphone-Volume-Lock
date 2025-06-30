@@ -8,7 +8,8 @@ import {
   IsStartupEnabled,
 } from "../wailsjs/go/main/App";
 import { EventsOn, EventsEmit } from "../wailsjs/runtime/runtime";
-import { Button, Slider } from "@radix-ui/themes";
+import { Slider } from "@radix-ui/themes";
+import Button from "./components/ui/Button";
 
 interface AppState {
   volume: number;
@@ -95,9 +96,8 @@ function App() {
       <div className="space-y-4 px-[4px]">
         <Button
           onClick={handleLockToggle}
-          className="!w-full py-2 px-4 !h-9 rounded font-bold"
-          variant={state.isLocked ? "surface" : "solid"}
-          color={"blue"}
+          className="w-full h-10 text-base font-bold"
+          variant={state.isLocked ? "primary-dark" : "primary"}
         >
           {state.isLocked
             ? "Unlock Microphone Volume"
@@ -114,14 +114,14 @@ function App() {
             onValueChange={handleVolumeChange}
             disabled={state.isLocked}
             className="w-full rounded-lg"
-            color="blue"
+            color="gray"
           />
         </div>
 
         <Button
           onClick={handleStopAll}
-          color="red"
-          className="!w-full py-1 px-2 text-white rounded font-bold"
+          variant="danger"
+          className="w-full h-10 text-base font-bold"
         >
           Stop All Nircmd Processes
         </Button>
