@@ -11,18 +11,19 @@ A Windows application built with Wails that lets you lock your microphone volume
 ## Prerequisites
 
 - Windows operating system
-- [NirCmd utility](https://www.nirsoft.net/utils/nircmd.html) installed (`nircmdc.exe` needed)
+<!-- - [NirCmd utility](https://www.nirsoft.net/utils/nircmd.html) installed (`nircmdc.exe` needed) -->
 
 For development:
 - Go 1.21 or later
 - Node.js and npm
 - Wails CLI (`go install github.com/wailsapp/wails/v2/cmd/wails@latest`)
 
+**Note:** The repository includes `nircmdc.exe` which is embedded into the final executable during build.
+
 ## Installation
 
 1. Download the latest release from the Releases page
-2. Place `nircmdc.exe` in the same directory as the application or have it installed globally (on the system)
-3. Run the application
+
 
 ## Development Setup
 
