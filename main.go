@@ -17,7 +17,7 @@ var assets embed.FS
 var iconBytes []byte
 
 func main() {
-	fileLog, err := os.OpenFile("microphone_volume_lock.log", os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
+	fileLog, err := os.OpenFile("app.log", os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
 	if err == nil {
 		log.SetOutput(fileLog)
 	} else {
