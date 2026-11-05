@@ -15,21 +15,57 @@ function errorText(error: unknown): string {
   return error instanceof Error ? error.message : String(error);
 }
 
-// The reason an action failed is shown in the alert below, so the status line
-// only states the lock state.
-function statusText(s: main.State): string {
-  if (!s.available) {
-    return s.locked ? `Locked at ${s.target}%. Waiting for a microphone.` : "Not locked.";
+function LockIcon({ open = false }: { open?: boolean }) {
+  return (
+    <svg
+      width="14"
+      height="14"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2.25"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden="true"
+    >
+      <rect x="5" y="11" width="14" height="10" rx="2" />
+      {open ? (
+        <path d="M8 11V7a4 4 0 0 1 7.7-1.5" />
+      ) : (
+        <path d="M8 11V7a4 4 0 0 1 8 0v4" />
+      )}
+    </svg>
+  );
+}
+
+function StatusPill({ state }: { state: main.State }) {
+  let tone: string;
+  let label: string;
+  if (!state.available) {
+    tone = "bg-amber-400/15 text-amber-300";
+    label = state.locked ? "Waiting" : "No mic";
+  } else if (state.locked) {
+    tone = "bg-blue-500/20 text-blue-200";
+    label = "Locked";
+  } else {
+    tone = "bg-white/10 text-gray-300";
+    label = "Unlocked";
   }
-  if (s.locked) {
-    return `Locked at ${s.target}%`;
-  }
-  return `Not locked. Microphone is at ${s.level}%.`;
+  return (
+    <span
+      role="status"
+      aria-live="polite"
+      className={`inline-flex shrink-0 items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-medium ${tone}`}
+    >
+      {state.locked && state.available && <LockIcon />}
+      {label}
+    </span>
+  );
 }
 
 function App() {
   const [state, setState] = useState<main.State | null>(null);
-  const [startup, setStartup] = useState<boolean>(false);
+  const [startup, setStartup] = useState(false);
   const [busy, setBusy] = useState(false);
   const [actionError, setActionError] = useState("");
   // While the user drags, the slider shows this value instead of the backend's.
@@ -58,8 +94,8 @@ function App() {
     };
   }, []);
 
-  // Radix only labels a slider thumb from the thumb's own props, which this
-  // wrapper cannot reach, so the label is set on the rendered thumb.
+  // Radix labels a slider thumb only from props the thumb itself receives, so
+  // the accessible name is set on the rendered thumb.
   useEffect(() => {
     sliderRoot.current
       ?.querySelectorAll<HTMLElement>('[role="slider"]')
@@ -116,69 +152,67 @@ function App() {
   };
 
   if (!state) {
-    return <div className="container mx-auto p-2 max-w-md" aria-busy="true" />;
+    return <div className="h-full" aria-busy="true" />;
   }
 
-  const shown = draft ?? state.target;
-  const message = actionError || state.message;
+  const level = draft ?? state.target;
+  const problem = actionError || state.message;
 
   return (
-    <div className="container mx-auto p-2 max-w-md">
-      <div className="space-y-3 px-[4px]">
-        <p
-          role="status"
-          aria-live="polite"
-          className={state.locked ? "text-blue-300 text-sm" : "text-gray-300 text-sm"}
-        >
-          {statusText(state)}
-        </p>
-
-        <Button
-          onClick={handleToggle}
-          disabled={busy || (!state.available && !state.locked)}
-          className="w-full h-10 text-base font-bold"
-          variant={state.locked ? "primary-dark" : "primary"}
-        >
-          {state.locked
-            ? "Unlock Microphone Volume"
-            : "Lock Microphone Volume"}
-        </Button>
-
-        <div className="space-y-2">
-          <div className="flex justify-between text-sm">
-            <span>Volume</span>
-            <span>{shown}%</span>
-          </div>
-          <div ref={sliderRoot}>
-            <Slider
-              min={0}
-              step={1}
-              max={100}
-              value={[shown]}
-              onValueChange={handleSlider}
-              disabled={!state.available}
-              className="w-full rounded-lg"
-              color="gray"
-            />
-          </div>
-        </div>
-
-        <Text as="label" size="2">
-          <Flex align="center" justify="center" gap="2">
-            <Checkbox
-              checked={startup}
-              onCheckedChange={(v) => handleStartup(v === true)}
-            />
-            Run at Windows startup
-          </Flex>
-        </Text>
-
-        {message && (
-          <p role="alert" className="text-amber-300 text-sm">
-            {message}
+    <div className="app flex flex-col gap-3 px-5 py-4 text-left">
+      <header className="flex items-end justify-between gap-3">
+        <div className="min-w-0">
+          {problem ? (
+            <p
+              role="alert"
+              title={problem}
+              className="truncate text-xs text-amber-300"
+            >
+              {problem}
+            </p>
+          ) : (
+            <p className="text-xs text-gray-400">Microphone volume</p>
+          )}
+          <p className="text-[2.5rem] font-semibold leading-none tabular-nums">
+            {level}
+            <span className="ml-0.5 text-xl font-medium text-gray-400">%</span>
           </p>
-        )}
+        </div>
+        <StatusPill state={state} />
+      </header>
+
+      <div ref={sliderRoot}>
+        <Slider
+          min={0}
+          step={1}
+          max={100}
+          value={[level]}
+          onValueChange={handleSlider}
+          disabled={!state.available}
+          className="w-full"
+        />
       </div>
+
+      <Button
+        onClick={handleToggle}
+        variant={state.locked ? "secondary" : "primary"}
+        disabled={busy || (!state.available && !state.locked)}
+        className="w-full"
+      >
+        <LockIcon open={state.locked} />
+        {state.locked ? "Unlock" : `Lock at ${level}%`}
+      </Button>
+
+      <Text as="label" size="2" color="gray">
+        <Flex align="center" gap="2">
+          <Checkbox
+            size="1"
+            checked={startup}
+            onCheckedChange={(v) => handleStartup(v === true)}
+          />
+          Start with Windows
+        </Flex>
+      </Text>
     </div>
   );
 }

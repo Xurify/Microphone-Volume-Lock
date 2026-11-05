@@ -81,7 +81,7 @@ The built executable will be in the `build/bin` directory.
 When the window is closed, the app keeps running in the tray and the lock stays active.
 
 ### Startup
-Tick "Run at Windows startup" in the window, or use Options > Run at Windows Startup. When started this way the app opens hidden in the tray.
+Tick "Start with Windows" in the window, or use Options > Start with Windows. When started this way the app opens hidden in the tray.
 
 ### Keyboard Shortcuts
 - `Ctrl+H`: Hide to system tray

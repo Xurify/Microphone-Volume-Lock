@@ -25,8 +25,9 @@ const (
 	uniqueID = "com.xurify.microphone-volume-lock"
 	// startHiddenFlag is passed by the Windows startup entry.
 	startHiddenFlag = "--hidden"
-	// windowHeight fits the controls. The window is not resizable vertically.
-	windowHeight = 230
+	// windowHeight is the content height (192px, measured in the browser) plus
+	// an estimated 56px for the Windows title bar and menu bar. Not resizable.
+	windowHeight = 248
 )
 
 func main() {

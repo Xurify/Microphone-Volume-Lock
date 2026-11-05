@@ -22,7 +22,7 @@ func (a *App) createMenu() *menu.Menu {
 
 	optionsMenu := appMenu.AddSubmenu("Options")
 	startupOn, _ := startupEnabled()
-	a.startupItem = optionsMenu.AddCheckbox("Run at Windows Startup", startupOn, keys.CmdOrCtrl("S"), func(d *menu.CallbackData) {
+	a.startupItem = optionsMenu.AddCheckbox("Start with Windows", startupOn, keys.CmdOrCtrl("S"), func(d *menu.CallbackData) {
 		a.setStartupFromMenu(d.MenuItem.Checked)
 	})
 
