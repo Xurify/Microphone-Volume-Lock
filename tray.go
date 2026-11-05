@@ -32,7 +32,7 @@ func (a *App) onReady() {
 			case <-lock.ClickedCh:
 				go a.toggleFromTray()
 			case <-quit.ClickedCh:
-				a.quit()
+				a.Quit()
 				return
 			}
 		}

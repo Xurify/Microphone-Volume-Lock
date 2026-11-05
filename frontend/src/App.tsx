@@ -1,14 +1,16 @@
 import { useEffect, useRef, useState } from "react";
-import { Checkbox, Slider } from "@radix-ui/themes";
+import { Checkbox } from "@radix-ui/themes";
+import * as Slider from "@radix-ui/react-slider";
 import {
   GetState,
   IsStartupEnabled,
+  Quit,
   SetLevel,
   SetStartupEnabled,
   ToggleLock,
   Version,
 } from "../wailsjs/go/main/App";
-import { EventsOn, Quit, WindowHide } from "../wailsjs/runtime/runtime";
+import { EventsOn, WindowHide } from "../wailsjs/runtime/runtime";
 import { main } from "../wailsjs/go/models";
 import Button from "./components/ui/Button";
 
@@ -72,11 +74,8 @@ function App() {
   const [actionError, setActionError] = useState("");
   const [draft, setDraft] = useState<number | null>(null);
 
-  const sliderRoot = useRef<HTMLDivElement>(null);
   const pendingLevel = useRef<number | null>(null);
   const sending = useRef(false);
-  const startupRef = useRef(startup);
-  startupRef.current = startup;
 
   useEffect(() => {
     let active = true;
@@ -87,9 +86,7 @@ function App() {
     IsStartupEnabled()
       .then((on) => active && setStartup(on))
       .catch((e) => active && setActionError(errorText(e)));
-    Version()
-      .then((v) => active && setVersion(v))
-      .catch(() => {});
+    Version().then((v) => active && setVersion(v));
 
     const offState = EventsOn("state", (s: main.State) => setState(s));
     const offStartup = EventsOn("startup", (on: boolean) => setStartup(on));
@@ -112,19 +109,12 @@ function App() {
         Quit();
       } else if (key === "s") {
         e.preventDefault();
-        void handleStartup(!startupRef.current);
+        void handleStartup(!startup);
       }
     };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
-  }, []);
-
-  // Radix doesn't pass aria-label through to the slider thumb.
-  useEffect(() => {
-    sliderRoot.current
-      ?.querySelectorAll<HTMLElement>('[role="slider"]')
-      .forEach((thumb) => thumb.setAttribute("aria-label", "Volume"));
-  });
+  }, [startup]);
 
   const sendLevel = async () => {
     if (sending.current) return;
@@ -163,15 +153,15 @@ function App() {
     }
   };
 
-  async function handleStartup(want: boolean) {
+  const handleStartup = async (want: boolean) => {
     setActionError("");
     try {
       setStartup(await SetStartupEnabled(want));
     } catch (e) {
       setActionError(errorText(e));
-      setStartup(await IsStartupEnabled().catch(() => !want));
+      IsStartupEnabled().then(setStartup, () => {});
     }
-  }
+  };
 
   if (!state) {
     return <div aria-busy="true" />;
@@ -185,11 +175,7 @@ function App() {
       <header className="flex items-end justify-between gap-3">
         <div className="min-w-0">
           {problem ? (
-            <p
-              role="alert"
-              title={problem}
-              className="truncate text-xs text-[var(--red-11)]"
-            >
+            <p role="alert" className="truncate text-xs text-[var(--red-11)]">
               {problem}
             </p>
           ) : (
@@ -209,19 +195,23 @@ function App() {
         <StatusPill state={state} />
       </header>
 
-      <div
-        ref={sliderRoot}
-        className={state.available ? "" : "cursor-not-allowed opacity-40 grayscale"}
+      <Slider.Root
+        min={0}
+        step={1}
+        max={100}
+        value={[level]}
+        onValueChange={handleSlider}
+        disabled={!state.available}
+        className="relative flex h-4 w-full touch-none select-none items-center data-[disabled]:cursor-not-allowed data-[disabled]:opacity-40"
       >
-        <Slider
-          min={0}
-          step={1}
-          max={100}
-          value={[level]}
-          onValueChange={handleSlider}
-          disabled={!state.available}
+        <Slider.Track className="relative h-1.5 grow overflow-hidden rounded-full bg-[var(--gray-a5)]">
+          <Slider.Range className="absolute h-full rounded-full bg-[var(--accent-9)] data-[disabled]:bg-[var(--gray-8)]" />
+        </Slider.Track>
+        <Slider.Thumb
+          aria-label="Volume"
+          className="block size-4 rounded-full bg-white shadow-md ring-1 ring-black/25 transition-transform hover:scale-110 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent-8)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--color-background)] data-[disabled]:scale-100 data-[disabled]:bg-[var(--gray-9)]"
         />
-      </div>
+      </Slider.Root>
 
       <Button
         onClick={handleToggle}
@@ -242,12 +232,7 @@ function App() {
           />
           Start with Windows
         </label>
-        <span
-          className="text-[var(--gray-10)]"
-          title="Ctrl+H hides to the tray · Ctrl+Q quits"
-        >
-          {version && version !== "dev" ? `v${version}` : "Ctrl+H to hide"}
-        </span>
+        {version && <span className="text-[var(--gray-10)]">v{version}</span>}
       </footer>
     </div>
   );

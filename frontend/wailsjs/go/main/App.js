@@ -10,6 +10,10 @@ export function IsStartupEnabled() {
   return window['go']['main']['App']['IsStartupEnabled']();
 }
 
+export function Quit() {
+  return window['go']['main']['App']['Quit']();
+}
+
 export function SetLevel(arg1) {
   return window['go']['main']['App']['SetLevel'](arg1);
 }

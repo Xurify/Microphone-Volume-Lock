@@ -6,6 +6,8 @@ export function GetState():Promise<main.State>;
 
 export function IsStartupEnabled():Promise<boolean>;
 
+export function Quit():Promise<void>;
+
 export function SetLevel(arg1:number):Promise<main.State>;
 
 export function SetStartupEnabled(arg1:boolean):Promise<boolean>;

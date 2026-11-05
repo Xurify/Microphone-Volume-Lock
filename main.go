@@ -23,7 +23,7 @@ var version = "1.1.0"
 const (
 	uniqueID        = "com.xurify.microphone-volume-lock"
 	startHiddenFlag = "--hidden"
-	contentHeight   = 218
+	contentHeight   = 226
 	titleBarHeight  = 32
 	windowHeight    = contentHeight + titleBarHeight
 )
@@ -51,7 +51,7 @@ func main() {
 			OnSecondInstanceLaunch: app.onSecondInstance,
 		},
 		OnStartup:  app.startup,
-		OnShutdown: app.onWailsShutdown,
+		OnShutdown: app.shutdown,
 		Windows: &windows.Options{
 			WebviewIsTransparent: false,
 			WindowIsTranslucent:  false,

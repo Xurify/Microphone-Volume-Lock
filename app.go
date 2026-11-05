@@ -3,7 +3,6 @@ package main
 import (
 	"context"
 	"errors"
-	"fmt"
 	"log"
 	"math"
 	"slices"
@@ -120,7 +119,7 @@ func (a *App) startup(ctx context.Context) {
 	go systray.Run(a.onReady, a.onExit)
 }
 
-func (a *App) shutdown() {
+func (a *App) shutdown(context.Context) {
 	a.shutdownOnce.Do(func() {
 		a.ctl.Close()
 		if a.saver != nil {
@@ -133,6 +132,9 @@ func (a *App) shutdown() {
 }
 
 func (a *App) onVolumeChange(s volumelock.Snapshot) {
+	if s.Err != nil {
+		log.Printf("microphone: %v", s.Err)
+	}
 	if a.saver != nil {
 		a.saver.Want(appstate.State{Volume: math.Round(s.Target * 100), Locked: s.Locked})
 	}
@@ -155,17 +157,13 @@ func (a *App) showWindow() {
 	runtime.WindowShow(a.ctx)
 }
 
-func (a *App) quit() {
+func (a *App) Quit() {
 	systray.Quit()
 	runtime.Quit(a.ctx)
 }
 
 func (a *App) onExit() {
-	a.shutdown()
-}
-
-func (a *App) onWailsShutdown(context.Context) {
-	a.shutdown()
+	a.shutdown(a.ctx)
 }
 
 func (a *App) syncStartup(on bool) {
@@ -191,7 +189,7 @@ func userMessage(err error) string {
 	if errors.Is(err, errNoMicrophone) {
 		return "No microphone found."
 	}
-	return fmt.Sprintf("Microphone error: %v", err)
+	return "Microphone is not responding. Retrying…"
 }
 
 func percent(v float64) int {
