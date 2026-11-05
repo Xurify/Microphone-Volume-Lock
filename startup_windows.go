@@ -32,7 +32,6 @@ func startupEnabled() (bool, error) {
 	return val != "", nil
 }
 
-// Version 1.0 wrote this entry without quotes or startHiddenFlag.
 func refreshStartupEntry() error {
 	k, err := registry.OpenKey(registry.CURRENT_USER, runKeyPath, registry.QUERY_VALUE|registry.SET_VALUE)
 	if err != nil {

@@ -65,7 +65,7 @@ func newTest(dev *fakeDevice, opts Options) *Controller {
 	return New(dev, opts)
 }
 
-func tick(c *Controller) { c.do(c.poll) }
+func tick(c *Controller) { c.do(c.pollLocked) }
 
 func approx(a, b float64) bool {
 	const eps = 1e-6
@@ -251,7 +251,7 @@ func TestOnChangeOnlyForVisibleChanges(t *testing.T) {
 
 	tick(c)
 	tick(c)
-	dev.external(0.4001) // same whole percent
+	dev.external(0.4001)
 	tick(c)
 	if len(got) != 1 {
 		t.Fatalf("notifications after jitter = %d, want 1", len(got))

@@ -79,7 +79,7 @@ func (c *Controller) Run() {
 	}
 	c.stop = make(chan struct{})
 	c.done = make(chan struct{})
-	c.do(c.poll)
+	c.do(c.pollLocked)
 	go c.loop(c.stop, c.done)
 }
 
@@ -99,7 +99,7 @@ func (c *Controller) SetLevel(level float64) error {
 	return c.do(func() error {
 		level = clamp(level)
 		c.target = level
-		return c.write(level)
+		return c.writeLocked(level)
 	})
 }
 
@@ -157,13 +157,12 @@ func (c *Controller) loop(stop <-chan struct{}, done chan<- struct{}) {
 		case <-stop:
 			return
 		case <-ticker.C:
-			c.do(c.poll)
+			c.do(c.pollLocked)
 		}
 	}
 }
 
-// Caller holds mu.
-func (c *Controller) poll() error {
+func (c *Controller) pollLocked() error {
 	level, err := c.dev.Level()
 	if err != nil {
 		c.available, c.err = false, err
@@ -176,13 +175,12 @@ func (c *Controller) poll() error {
 		return nil
 	}
 	if math.Abs(level-c.target) > c.opts.Tolerance {
-		return c.write(c.target)
+		return c.writeLocked(c.target)
 	}
 	return nil
 }
 
-// Caller holds mu.
-func (c *Controller) write(level float64) error {
+func (c *Controller) writeLocked(level float64) error {
 	if err := c.dev.SetLevel(level); err != nil {
 		c.available, c.err = false, err
 		return err
@@ -191,12 +189,11 @@ func (c *Controller) write(level float64) error {
 	return nil
 }
 
-// Caller holds mu.
 func (c *Controller) lockLocked() error {
 	if c.locked {
 		return nil
 	}
-	if err := c.write(c.target); err != nil {
+	if err := c.writeLocked(c.target); err != nil {
 		return err
 	}
 	c.locked = true

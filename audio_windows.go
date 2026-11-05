@@ -122,7 +122,6 @@ func (d *captureDevice) call(fn func(*comState) error) error {
 	return <-result
 }
 
-// Windows can switch the default recording device at any time.
 func (st *comState) endpoint() (*wca.IAudioEndpointVolume, error) {
 	var dev *wca.IMMDevice
 	if err := st.enum.GetDefaultAudioEndpoint(wca.ECapture, wca.EConsole, &dev); err != nil {

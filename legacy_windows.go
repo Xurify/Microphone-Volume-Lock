@@ -12,9 +12,11 @@ import (
 	"golang.org/x/sys/windows"
 )
 
-const legacyCopyPattern = "nircmdc_*.exe"
+const (
+	legacyCopyPattern = "nircmdc_*.exe"
+	longPathLimit     = 32768
+)
 
-// Version 1.0 left nircmdc copies running from the temp folder after its window closed.
 func cleanupLegacyNircmd() {
 	tempDir := filepath.Clean(os.TempDir())
 
@@ -54,7 +56,7 @@ func imagePath(pid uint32) (string, bool) {
 	}
 	defer windows.CloseHandle(h)
 
-	buf := make([]uint16, 32768) // long-path limit
+	buf := make([]uint16, longPathLimit)
 	size := uint32(len(buf))
 	if err := windows.QueryFullProcessImageName(h, 0, &buf[0], &size); err != nil {
 		return "", false

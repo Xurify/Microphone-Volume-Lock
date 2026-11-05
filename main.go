@@ -23,8 +23,9 @@ var version = "1.1.0"
 const (
 	uniqueID        = "com.xurify.microphone-volume-lock"
 	startHiddenFlag = "--hidden"
-	// 218px of measured content plus an estimated 32px Windows 11 title bar.
-	windowHeight = 250
+	contentHeight   = 218
+	titleBarHeight  = 32
+	windowHeight    = contentHeight + titleBarHeight
 )
 
 func main() {

@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"io/fs"
+	"math"
 	"os"
 	"path/filepath"
 )
@@ -72,7 +73,7 @@ func Save(path string, s State) error {
 
 func clampVolume(v float64) float64 {
 	switch {
-	case v != v || v < 0: // v != v is true only for NaN
+	case math.IsNaN(v) || v < 0:
 		return 0
 	case v > 100:
 		return 100
