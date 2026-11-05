@@ -33,7 +33,6 @@ func (d *fakeDevice) SetLevel(v float64) error {
 	return nil
 }
 
-// external simulates Windows or another app changing the level.
 func (d *fakeDevice) external(level float64) {
 	d.mu.Lock()
 	defer d.mu.Unlock()

@@ -12,13 +12,9 @@ import (
 	"golang.org/x/sys/windows"
 )
 
-// legacyCopyPattern matches the file names version 1.0 gave to its extracted
-// copy of nircmdc.exe.
 const legacyCopyPattern = "nircmdc_*.exe"
 
-// cleanupLegacyNircmd stops copies of nircmdc.exe left running by version 1.0,
-// which extracted nircmdc.exe to the temp folder and never stopped it when the
-// window closed. Only processes running exactly such a file are touched.
+// Version 1.0 left nircmdc copies running from the temp folder after its window closed.
 func cleanupLegacyNircmd() {
 	tempDir := filepath.Clean(os.TempDir())
 

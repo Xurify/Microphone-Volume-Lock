@@ -1,4 +1,3 @@
-// Package appstate stores the settings that survive a restart.
 package appstate
 
 import (
@@ -10,7 +9,6 @@ import (
 	"path/filepath"
 )
 
-// State is saved between runs. Volume is a percentage from 0 to 100.
 type State struct {
 	Volume float64 `json:"volume"`
 	Locked bool    `json:"locked"`
@@ -20,9 +18,6 @@ func Default() State {
 	return State{Volume: 75}
 }
 
-// Load reads the state stored at path. A missing file gives Default and no
-// error. A damaged file is renamed to path+".corrupt" so it can be inspected,
-// and Load returns Default together with an error that says so.
 func Load(path string) (State, error) {
 	data, err := os.ReadFile(path)
 	if errors.Is(err, fs.ErrNotExist) {
@@ -44,9 +39,6 @@ func Load(path string) (State, error) {
 	return s, nil
 }
 
-// Save writes s to path. The data goes to a temporary file in the same folder,
-// which replaces path only after it has been fully written and flushed to disk.
-// A crash mid-save therefore leaves either the old file or the new one.
 func Save(path string, s State) error {
 	s.Volume = clampVolume(s.Volume)
 	data, err := json.Marshal(s)
@@ -62,7 +54,7 @@ func Save(path string, s State) error {
 		return err
 	}
 	tmpName := tmp.Name()
-	defer os.Remove(tmpName) // harmless once the rename has moved the file
+	defer os.Remove(tmpName)
 
 	if _, err := tmp.Write(data); err != nil {
 		tmp.Close()

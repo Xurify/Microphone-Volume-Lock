@@ -17,17 +17,13 @@ var assets embed.FS
 //go:embed build/windows/icon.ico
 var iconBytes []byte
 
-// version must match info.productVersion in wails.json, which the installer
-// and the Windows file properties use.
+// Keep in sync with info.productVersion in wails.json.
 var version = "1.1.0"
 
 const (
-	// uniqueID identifies the running instance to Wails' single-instance check.
-	uniqueID = "com.xurify.microphone-volume-lock"
-	// startHiddenFlag is passed by the Windows startup entry.
+	uniqueID        = "com.xurify.microphone-volume-lock"
 	startHiddenFlag = "--hidden"
-	// windowHeight is the content height (measured in the browser) plus an
-	// estimated 32px for the Windows 11 title bar. Not resizable.
+	// 218px of measured content plus an estimated 32px Windows 11 title bar.
 	windowHeight = 250
 )
 

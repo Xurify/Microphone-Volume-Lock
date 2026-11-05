@@ -8,12 +8,8 @@ import (
 	"MicrophoneVolumeLock/internal/appstate"
 )
 
-// saveDelay groups slider movements into one disk write.
 const saveDelay = 400 * time.Millisecond
 
-// settingsSaver writes state.json. Changes to the lock flag are written at
-// once; slider movements are written after the slider has been still for
-// saveDelay, so dragging does not hit the disk on every step.
 type settingsSaver struct {
 	path string
 

@@ -1,7 +1,3 @@
-// Package volumelock keeps one capture device at a chosen level.
-//
-// The Controller holds the policy: the target level, whether the lock is on,
-// and when the device has to be rewritten. Platform code only implements Device.
 package volumelock
 
 import (
@@ -10,31 +6,23 @@ import (
 	"time"
 )
 
-// Device reads and writes the master level of one capture endpoint.
-// Both values use a 0–1 scale.
 type Device interface {
 	Level() (float64, error)
 	SetLevel(level float64) error
 }
 
 type Snapshot struct {
-	Level     float64 // level the device reported on the last poll
-	Target    float64 // level the slider holds; follows the device while unlocked
+	Level     float64
+	Target    float64
 	Locked    bool
-	Available bool  // the device answered the last poll
-	Err       error // why the device is unavailable; nil otherwise
+	Available bool
+	Err       error
 }
 
-// Options configures a Controller. Zero values select the defaults.
 type Options struct {
-	// Interval is the poll period. Default 250ms.
-	Interval time.Duration
-	// Tolerance is how far the device may drift from the target before it is
-	// rewritten. Default 0.005 (half a percent).
+	Interval  time.Duration
 	Tolerance float64
-	// OnChange is called when a visible part of the Snapshot changes. It runs
-	// without the controller's data lock held, but it must not call the methods
-	// that change state (Lock, Unlock, Toggle, SetLevel, Restore, Run, Close).
+	// OnChange runs while serial is held, so it must not call methods that change state.
 	OnChange func(Snapshot)
 }
 
@@ -47,9 +35,8 @@ type Controller struct {
 	dev  Device
 	opts Options
 
-	// serial orders all state changes and OnChange calls. It is taken before mu.
-	serial sync.Mutex
-	// mu guards the fields below. It is only held briefly.
+	// serial orders state changes and OnChange calls; take it before mu.
+	serial    sync.Mutex
 	mu        sync.Mutex
 	level     float64
 	target    float64
@@ -65,7 +52,6 @@ type Controller struct {
 	done   chan struct{}
 }
 
-// New returns a Controller for dev. It does not touch the device until Run.
 func New(dev Device, opts Options) *Controller {
 	if opts.Interval <= 0 {
 		opts.Interval = defaultInterval
@@ -76,9 +62,6 @@ func New(dev Device, opts Options) *Controller {
 	return &Controller{dev: dev, opts: opts}
 }
 
-// Restore sets the saved state. Call it before Run. A locked restore is kept
-// even when the device is missing; the poll loop applies it once the device
-// appears.
 func (c *Controller) Restore(target float64, locked bool) {
 	c.serial.Lock()
 	defer c.serial.Unlock()
@@ -88,8 +71,6 @@ func (c *Controller) Restore(target float64, locked bool) {
 	c.locked = locked
 }
 
-// Run polls the device now and then every Interval. Calling Run while the loop
-// is already running does nothing.
 func (c *Controller) Run() {
 	c.loopMu.Lock()
 	defer c.loopMu.Unlock()
@@ -102,8 +83,6 @@ func (c *Controller) Run() {
 	go c.loop(c.stop, c.done)
 }
 
-// Close stops the poll loop and waits for it to exit. The lock state does not
-// change, so the next Run enforces it again.
 func (c *Controller) Close() {
 	c.loopMu.Lock()
 	stop, done := c.stop, c.done
@@ -116,8 +95,6 @@ func (c *Controller) Close() {
 	<-done
 }
 
-// SetLevel moves the device to level (0–1) right away. While locked, the new
-// level also becomes the level the lock holds.
 func (c *Controller) SetLevel(level float64) error {
 	return c.do(func() error {
 		level = clamp(level)
@@ -126,13 +103,10 @@ func (c *Controller) SetLevel(level float64) error {
 	})
 }
 
-// Lock holds the current target level. If the device cannot be written, the
-// lock stays off and the error is returned.
 func (c *Controller) Lock() error {
 	return c.do(c.lockLocked)
 }
 
-// Unlock releases the lock. The device keeps its current level.
 func (c *Controller) Unlock() error {
 	return c.do(func() error {
 		c.locked = false
@@ -150,15 +124,12 @@ func (c *Controller) Toggle() error {
 	})
 }
 
-// Snapshot returns the current state. It never touches the device.
 func (c *Controller) Snapshot() Snapshot {
 	c.mu.Lock()
 	defer c.mu.Unlock()
 	return c.snapshotLocked()
 }
 
-// do runs fn under the controller's locks and reports the new snapshot if it
-// differs from the last one reported.
 func (c *Controller) do(fn func() error) error {
 	c.serial.Lock()
 	defer c.serial.Unlock()
@@ -191,8 +162,6 @@ func (c *Controller) loop(stop <-chan struct{}, done chan<- struct{}) {
 	}
 }
 
-// poll reads the device. While unlocked, the target follows the device. While
-// locked, the device is rewritten whenever it drifts past the tolerance.
 // Caller holds mu.
 func (c *Controller) poll() error {
 	level, err := c.dev.Level()
@@ -244,8 +213,6 @@ func (c *Controller) snapshotLocked() Snapshot {
 	}
 }
 
-// snapshotKey is the part of a Snapshot that matters to the UI. Levels are
-// compared in whole percent so tiny device jitter does not trigger OnChange.
 type snapshotKey struct {
 	level, target     int
 	locked, available bool

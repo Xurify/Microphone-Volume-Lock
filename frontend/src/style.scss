@@ -2,8 +2,7 @@
 @tailwind components;
 @tailwind utilities;
 
-// Matches the Radix dark "sand" background and the window colour set in main.go,
-// so nothing flashes while the page loads.
+// Same colour as BackgroundColour in main.go, so the window does not flash on load.
 html,
 body {
     margin: 0;

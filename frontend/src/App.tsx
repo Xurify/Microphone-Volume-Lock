@@ -70,7 +70,6 @@ function App() {
   const [version, setVersion] = useState("");
   const [busy, setBusy] = useState(false);
   const [actionError, setActionError] = useState("");
-  // While the user drags, the slider shows this value instead of the backend's.
   const [draft, setDraft] = useState<number | null>(null);
 
   const sliderRoot = useRef<HTMLDivElement>(null);
@@ -101,7 +100,6 @@ function App() {
     };
   }, []);
 
-  // The window has no menu bar, so its old shortcuts live here.
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
       if (!e.ctrlKey || e.altKey || e.shiftKey || e.metaKey) return;
@@ -121,16 +119,13 @@ function App() {
     return () => window.removeEventListener("keydown", onKey);
   }, []);
 
-  // Radix labels a slider thumb only from props the thumb itself receives, so
-  // the accessible name is set on the rendered thumb.
+  // Radix doesn't pass aria-label through to the slider thumb.
   useEffect(() => {
     sliderRoot.current
       ?.querySelectorAll<HTMLElement>('[role="slider"]')
       .forEach((thumb) => thumb.setAttribute("aria-label", "Volume"));
   });
 
-  // Slider moves are sent one at a time. If the user keeps dragging while a
-  // request is in flight, only the latest value is sent next.
   const sendLevel = async () => {
     if (sending.current) return;
     sending.current = true;

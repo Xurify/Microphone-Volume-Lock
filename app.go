@@ -22,7 +22,6 @@ type endpoint interface {
 	Close() error
 }
 
-// brokenDevice stands in when the audio API cannot start, so the UI can say why.
 type brokenDevice struct{ err error }
 
 func (b brokenDevice) Level() (float64, error) { return 0, b.err }
@@ -41,7 +40,6 @@ type App struct {
 	shutdownOnce sync.Once
 }
 
-// State is what the UI shows. Levels are whole percentages from 0 to 100.
 type State struct {
 	Level     int    `json:"level"`
 	Target    int    `json:"target"`
@@ -74,8 +72,6 @@ func (a *App) GetState() State {
 	return toState(a.ctl.Snapshot())
 }
 
-// SetLevel moves the microphone to percent (0–100). While locked, the lock
-// holds the new level.
 func (a *App) SetLevel(percent float64) (State, error) {
 	err := a.ctl.SetLevel(percent / 100)
 	return toState(a.ctl.Snapshot()), err
@@ -124,8 +120,6 @@ func (a *App) startup(ctx context.Context) {
 	go systray.Run(a.onReady, a.onExit)
 }
 
-// shutdown is reached from both the tray Quit and Wails' OnShutdown, so it
-// guards itself to run once.
 func (a *App) shutdown() {
 	a.shutdownOnce.Do(func() {
 		a.ctl.Close()
@@ -149,9 +143,6 @@ func (a *App) onVolumeChange(s volumelock.Snapshot) {
 	a.updateTray(s)
 }
 
-// onSecondInstance runs in the first instance when the app is started again.
-// The second copy exits by itself; this brings the running window forward.
-// A start from the Windows Run entry (startHiddenFlag) stays in the tray.
 func (a *App) onSecondInstance(data options.SecondInstanceData) {
 	if slices.Contains(data.Args, startHiddenFlag) {
 		return

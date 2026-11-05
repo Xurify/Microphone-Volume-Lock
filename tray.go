@@ -23,8 +23,7 @@ func (a *App) onReady() {
 	a.trayMu.Unlock()
 	a.updateTray(a.ctl.Snapshot())
 
-	// systray drops clicks that are not received right away, so each action runs
-	// on its own goroutine and the loop goes straight back to waiting.
+	// systray drops a click when nothing is receiving, so actions run on their own goroutine.
 	go func() {
 		for {
 			select {

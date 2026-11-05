@@ -17,9 +17,7 @@ var (
 	errDeviceClosed = errors.New("audio device is closed")
 )
 
-// captureDevice drives the default recording device through Core Audio.
-// COM objects are bound to the thread that created them, so every call runs on
-// one goroutine that is locked to its OS thread.
+// COM objects belong to the thread that created them, so all calls run on one locked OS thread.
 type captureDevice struct {
 	calls chan func(*comState)
 	quit  chan struct{}
@@ -27,7 +25,6 @@ type captureDevice struct {
 	once  sync.Once
 }
 
-// comState belongs to the COM thread and is only touched there.
 type comState struct {
 	enum     *wca.IMMDeviceEnumerator
 	volume   *wca.IAudioEndpointVolume
@@ -125,9 +122,7 @@ func (d *captureDevice) call(fn func(*comState) error) error {
 	return <-result
 }
 
-// endpoint returns the volume control of the current default recording device.
-// Windows can switch the default at any time, so the device ID is checked on
-// every call and the control is reopened when it changes.
+// Windows can switch the default recording device at any time.
 func (st *comState) endpoint() (*wca.IAudioEndpointVolume, error) {
 	var dev *wca.IMMDevice
 	if err := st.enum.GetDefaultAudioEndpoint(wca.ECapture, wca.EConsole, &dev); err != nil {

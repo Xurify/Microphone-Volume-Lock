@@ -8,8 +8,6 @@ import (
 
 const maxLogBytes = 1 << 20
 
-// appDataDir is the per-user folder for settings and the log, for example
-// %AppData%\MicrophoneVolumeLock on Windows.
 func appDataDir() (string, error) {
 	base, err := os.UserConfigDir()
 	if err != nil {

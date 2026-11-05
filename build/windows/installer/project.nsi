@@ -104,7 +104,6 @@ Section "uninstall"
 
     RMDir /r $INSTDIR
 
-    ; The app adds this itself when "Start with Windows" is on.
     DeleteRegValue HKCU "Software\Microsoft\Windows\CurrentVersion\Run" "MicrophoneVolumeLock"
 
     Delete "$SMPROGRAMS\${INFO_PRODUCTNAME}.lnk"

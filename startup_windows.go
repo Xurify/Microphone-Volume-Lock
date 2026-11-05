@@ -32,9 +32,7 @@ func startupEnabled() (bool, error) {
 	return val != "", nil
 }
 
-// refreshStartupEntry rewrites an existing Run entry in the current format.
-// Version 1.0 wrote it without quotes or startHiddenFlag, and the path goes
-// stale if the app is installed somewhere else.
+// Version 1.0 wrote this entry without quotes or startHiddenFlag.
 func refreshStartupEntry() error {
 	k, err := registry.OpenKey(registry.CURRENT_USER, runKeyPath, registry.QUERY_VALUE|registry.SET_VALUE)
 	if err != nil {
@@ -64,8 +62,6 @@ func startupCommand() (string, error) {
 	return fmt.Sprintf(`"%s" %s`, exe, startHiddenFlag), nil
 }
 
-// setStartupEnabled writes or removes the Run entry. The entry carries
-// startHiddenFlag so that a login start goes straight to the tray.
 func setStartupEnabled(enabled bool) error {
 	k, err := registry.OpenKey(registry.CURRENT_USER, runKeyPath, registry.SET_VALUE)
 	if err != nil {
