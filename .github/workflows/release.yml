@@ -6,6 +6,10 @@ on:
       version:
         description: Version without the leading v, for example 1.2.0
         required: true
+      replace:
+        description: Delete an existing release and tag with this version first
+        type: boolean
+        default: false
 
 permissions:
   contents: write
@@ -54,6 +58,13 @@ jobs:
 
       - name: Build
         run: wails build -platform windows/amd64 -nsis -trimpath -skipbindings
+
+      - name: Delete existing release
+        if: inputs.replace
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh release delete "v$env:VERSION" --cleanup-tag --yes
 
       - name: Publish release
         shell: pwsh

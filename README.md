@@ -66,7 +66,7 @@ wails build
 To release a new version:
 1. Set the same version in `info.productVersion` in `wails.json` and `version` in `main.go`.
 2. Add release notes as `.github/release-notes/v<version>.md`.
-3. Merge to `master`, then run the **Release** workflow in GitHub Actions with the version (for example `1.2.0`). It tests, builds the exe and installer on Windows, creates the `v<version>` tag and publishes the release with SHA-256 checksums.
+3. Merge to `master`, then run the **Release** workflow in GitHub Actions with the version (for example `1.2.0`). It tests, builds the exe and installer on Windows, creates the `v<version>` tag and publishes the release with SHA-256 checksums. Tick **replace** to delete an existing release with the same version first.
 
 To build the installer as well:
 ```bash
