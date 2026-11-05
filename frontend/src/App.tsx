@@ -43,7 +43,7 @@ function StatusPill({ state }: { state: main.State }) {
   let tone: string;
   let label: string;
   if (!state.available) {
-    tone = "bg-[var(--amber-a3)] text-[var(--amber-11)]";
+    tone = "bg-[var(--red-a3)] text-[var(--red-11)]";
     label = state.locked ? "Waiting" : "No mic";
   } else if (state.locked) {
     tone = "bg-[var(--accent-a4)] text-[var(--accent-11)]";
@@ -193,14 +193,18 @@ function App() {
             <p
               role="alert"
               title={problem}
-              className="truncate text-xs text-[var(--amber-11)]"
+              className="truncate text-xs text-[var(--red-11)]"
             >
               {problem}
             </p>
           ) : (
             <p className="text-xs text-[var(--gray-11)]">Microphone volume</p>
           )}
-          <p className="mt-1 text-[2.75rem] font-semibold leading-none tracking-tight tabular-nums text-[var(--gray-12)]">
+          <p
+            className={`mt-1 text-[2.75rem] font-semibold leading-none tracking-tight tabular-nums ${
+              state.available ? "text-[var(--gray-12)]" : "text-[var(--gray-9)]"
+            }`}
+          >
             {level}
             <span className="ml-1 text-xl font-medium text-[var(--gray-10)]">
               %
@@ -210,7 +214,10 @@ function App() {
         <StatusPill state={state} />
       </header>
 
-      <div ref={sliderRoot}>
+      <div
+        ref={sliderRoot}
+        className={state.available ? "" : "cursor-not-allowed opacity-40 grayscale"}
+      >
         <Slider
           min={0}
           step={1}

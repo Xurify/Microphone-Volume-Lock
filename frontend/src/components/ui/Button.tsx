@@ -15,6 +15,8 @@ const variantClasses = {
   secondary: "bg-[var(--gray-a3)] text-[var(--gray-12)] ring-[var(--gray-a5)] enabled:hover:bg-[var(--gray-a4)]",
 };
 
+const disabledClasses = "cursor-not-allowed bg-[var(--gray-a2)] text-[var(--gray-a8)] ring-[var(--gray-a4)]";
+
 const Button: React.FC<ButtonProps> = ({
   onClick,
   children,
@@ -22,14 +24,13 @@ const Button: React.FC<ButtonProps> = ({
   disabled = false,
   className = ''
 }) => {
-  const disabledClasses = disabled ? "cursor-not-allowed opacity-50" : "cursor-pointer";
 
   return (
     <button
       type="button"
       onClick={onClick}
       disabled={disabled}
-      className={`${baseClasses} ${variantClasses[variant]} ${disabledClasses} ${className}`}
+      className={`${baseClasses} ${disabled ? disabledClasses : `${variantClasses[variant]} cursor-pointer`} ${className}`}
     >
       {children}
     </button>
