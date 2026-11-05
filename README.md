@@ -124,6 +124,7 @@ If `state.json` is damaged, it is renamed to `state.json.corrupt` and the defaul
 - `legacy_windows.go`: Stops copies of the old nircmd helper left by version 1.1
 - `internal/volumelock/`: The lock policy (target level, drift correction, device errors)
 - `internal/appstate/`: Atomic load and save of the settings file
+- `internal/windowfit/`: Sizes the window to its content from the measured window frame
 - `frontend/`: React frontend
   - `src/App.tsx`: Main application interface
   - `src/style.scss`: Application styling

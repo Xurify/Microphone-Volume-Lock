@@ -18,14 +18,17 @@ var assets embed.FS
 var iconBytes []byte
 
 // Keep in sync with info.productVersion in wails.json.
-var version = "1.2.0"
+var version = "1.2.1"
 
 const (
-	uniqueID        = "com.xurify.microphone-volume-lock"
-	startHiddenFlag = "--hidden"
-	contentHeight   = 226
-	titleBarHeight  = 32
-	windowHeight    = contentHeight + titleBarHeight
+	uniqueID           = "com.xurify.microphone-volume-lock"
+	startHiddenFlag    = "--hidden"
+	defaultClientWidth = 400
+	minClientWidth     = 300
+	// Starting guesses only; FitWindow replaces them with measured values.
+	estimatedContentHeight = 226
+	estimatedFrameWidth    = 16
+	estimatedFrameHeight   = 40
 )
 
 func main() {
@@ -36,12 +39,12 @@ func main() {
 
 	err := wails.Run(&options.App{
 		Title:             "Microphone Volume Lock",
-		Width:             400,
-		Height:            windowHeight,
-		MinWidth:          300,
-		MaxWidth:          400,
-		MinHeight:         windowHeight,
-		MaxHeight:         windowHeight,
+		Width:             defaultClientWidth + estimatedFrameWidth,
+		Height:            estimatedContentHeight + estimatedFrameHeight,
+		MinWidth:          minClientWidth + estimatedFrameWidth,
+		MaxWidth:          defaultClientWidth + estimatedFrameWidth,
+		MinHeight:         estimatedContentHeight + estimatedFrameHeight,
+		MaxHeight:         estimatedContentHeight + estimatedFrameHeight,
 		Assets:            assets,
 		BackgroundColour:  &options.RGBA{R: 17, G: 17, B: 16, A: 255},
 		StartHidden:       slices.Contains(os.Args[1:], startHiddenFlag),

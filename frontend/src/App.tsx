@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import { Checkbox } from "@radix-ui/themes";
 import * as Slider from "@radix-ui/react-slider";
 import {
+  FitWindow,
   GetState,
   IsStartupEnabled,
   Quit,
@@ -74,6 +75,7 @@ function App() {
   const [actionError, setActionError] = useState("");
   const [draft, setDraft] = useState<number | null>(null);
 
+  const appRef = useRef<HTMLDivElement>(null);
   const pendingLevel = useRef<number | null>(null);
   const sending = useRef(false);
 
@@ -115,6 +117,18 @@ function App() {
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
   }, [startup]);
+
+  const ready = state !== null;
+  useEffect(() => {
+    const el = appRef.current;
+    if (!el) return;
+    const fit = () =>
+      FitWindow(Math.ceil(el.getBoundingClientRect().height), window.innerWidth, window.innerHeight);
+    fit();
+    const observer = new ResizeObserver(fit);
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, [ready]);
 
   const sendLevel = async () => {
     if (sending.current) return;
@@ -171,7 +185,7 @@ function App() {
   const problem = actionError || state.message;
 
   return (
-    <div className="app flex flex-col gap-4 px-5 pb-3 pt-4 text-left">
+    <div ref={appRef} className="app flex flex-col gap-4 px-5 pb-3 pt-4 text-left">
       <header className="flex items-end justify-between gap-3">
         <div className="min-w-0">
           {problem ? (

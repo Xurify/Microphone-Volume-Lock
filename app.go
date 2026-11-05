@@ -14,6 +14,7 @@ import (
 
 	"MicrophoneVolumeLock/internal/appstate"
 	"MicrophoneVolumeLock/internal/volumelock"
+	"MicrophoneVolumeLock/internal/windowfit"
 )
 
 type endpoint interface {
@@ -37,6 +38,9 @@ type App struct {
 	lockItem *systray.MenuItem
 
 	shutdownOnce sync.Once
+
+	fitMu  sync.Mutex
+	fitted bool
 }
 
 type State struct {
@@ -65,6 +69,25 @@ func NewApp() *App {
 
 func (a *App) Version() string {
 	return version
+}
+
+func (a *App) FitWindow(contentHeight, viewportWidth, viewportHeight int) {
+	if contentHeight <= 0 || viewportWidth <= 0 || viewportHeight <= 0 {
+		return
+	}
+	a.fitMu.Lock()
+	defer a.fitMu.Unlock()
+
+	w, h := runtime.WindowGetSize(a.ctx)
+	plan := windowfit.Fit(windowfit.Size{Width: w, Height: h}, windowfit.Size{Width: viewportWidth, Height: viewportHeight},
+		contentHeight, minClientWidth, defaultClientWidth, !a.fitted)
+	a.fitted = true
+
+	runtime.WindowSetMinSize(a.ctx, plan.MinWidth, plan.Window.Height)
+	runtime.WindowSetMaxSize(a.ctx, plan.MaxWidth, plan.Window.Height)
+	if plan.Window.Width != w || plan.Window.Height != h {
+		runtime.WindowSetSize(a.ctx, plan.Window.Width, plan.Window.Height)
+	}
 }
 
 func (a *App) GetState() State {
