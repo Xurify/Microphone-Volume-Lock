@@ -81,12 +81,13 @@ The built executable will be in the `build/bin` directory.
 When the window is closed, the app keeps running in the tray and the lock stays active.
 
 ### Startup
-Tick "Start with Windows" in the window, or use Options > Start with Windows. When started this way the app opens hidden in the tray.
+Tick "Start with Windows" at the bottom of the window. When started this way the app opens hidden in the tray.
 
 ### Keyboard Shortcuts
+The window has no menu bar; these shortcuts work while it has focus:
 - `Ctrl+H`: Hide to system tray
 - `Ctrl+Q`: Quit application
-- `Ctrl+S`: Toggle Windows startup setting
+- `Ctrl+S`: Toggle "Start with Windows"
 
 ### System Tray
 Right-click the tray icon for:
@@ -97,7 +98,7 @@ Right-click the tray icon for:
 Hover over the icon to see whether the microphone is locked and at which level.
 
 ### Quitting
-Quit (tray menu, File > Exit, or `Ctrl+Q`) stops the lock. The next time the app starts, a lock that was on when you quit is turned back on.
+Quit (tray menu or `Ctrl+Q`) stops the lock. The next time the app starts, a lock that was on when you quit is turned back on.
 
 ### Files
 The app stores its files in `%AppData%\MicrophoneVolumeLock`:
@@ -110,7 +111,6 @@ If `state.json` is damaged, it is renamed to `state.json.corrupt` and the defaul
 
 - `main.go`: Application entry point, window configuration, and single-instance setup
 - `app.go`: Methods the frontend calls, and the state shared with the UI and the tray
-- `menu.go`: Application menu
 - `tray.go`: System tray icon and menu
 - `settings.go`: Debounced saving of the settings file
 - `paths.go`: App data folder and logging

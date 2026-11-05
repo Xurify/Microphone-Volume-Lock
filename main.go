@@ -25,9 +25,9 @@ const (
 	uniqueID = "com.xurify.microphone-volume-lock"
 	// startHiddenFlag is passed by the Windows startup entry.
 	startHiddenFlag = "--hidden"
-	// windowHeight is the content height (192px, measured in the browser) plus
-	// an estimated 56px for the Windows title bar and menu bar. Not resizable.
-	windowHeight = 248
+	// windowHeight is the content height (measured in the browser) plus an
+	// estimated 32px for the Windows 11 title bar. Not resizable.
+	windowHeight = 250
 )
 
 func main() {
@@ -45,7 +45,7 @@ func main() {
 		MinHeight:         windowHeight,
 		MaxHeight:         windowHeight,
 		Assets:            assets,
-		BackgroundColour:  &options.RGBA{R: 27, G: 27, B: 27, A: 1},
+		BackgroundColour:  &options.RGBA{R: 17, G: 17, B: 16, A: 255},
 		StartHidden:       slices.Contains(os.Args[1:], startHiddenFlag),
 		HideWindowOnClose: true,
 		SingleInstanceLock: &options.SingleInstanceLock{
@@ -54,7 +54,6 @@ func main() {
 		},
 		OnStartup:  app.startup,
 		OnShutdown: app.onWailsShutdown,
-		Menu:       app.createMenu(),
 		Windows: &windows.Options{
 			WebviewIsTransparent: false,
 			WindowIsTranslucent:  false,

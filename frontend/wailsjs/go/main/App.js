@@ -21,3 +21,7 @@ export function SetStartupEnabled(arg1) {
 export function ToggleLock() {
   return window['go']['main']['App']['ToggleLock']();
 }
+
+export function Version() {
+  return window['go']['main']['App']['Version']();
+}

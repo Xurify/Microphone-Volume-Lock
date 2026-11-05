@@ -10,7 +10,7 @@ const root = createRoot(container);
 
 root.render(
   <React.StrictMode>
-    <Theme accentColor="blue" grayColor="sand" radius="large" scaling="95%" appearance="dark">
+    <Theme accentColor="indigo" grayColor="sand" radius="large" scaling="95%" appearance="dark">
       <App />
     </Theme>
   </React.StrictMode>

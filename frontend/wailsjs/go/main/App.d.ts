@@ -11,3 +11,5 @@ export function SetLevel(arg1:number):Promise<main.State>;
 export function SetStartupEnabled(arg1:boolean):Promise<boolean>;
 
 export function ToggleLock():Promise<main.State>;
+
+export function Version():Promise<string>;

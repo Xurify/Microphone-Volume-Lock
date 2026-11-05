@@ -10,7 +10,6 @@ import (
 	"sync"
 
 	"github.com/getlantern/systray"
-	"github.com/wailsapp/wails/v2/pkg/menu"
 	"github.com/wailsapp/wails/v2/pkg/options"
 	"github.com/wailsapp/wails/v2/pkg/runtime"
 
@@ -37,8 +36,6 @@ type App struct {
 	dev   endpoint
 	ctl   *volumelock.Controller
 	saver *settingsSaver
-
-	startupItem *menu.MenuItem
 
 	trayMu   sync.Mutex
 	lockItem *systray.MenuItem
@@ -69,6 +66,11 @@ func NewApp() *App {
 	a.dev = dev
 	a.ctl = volumelock.New(dev, volumelock.Options{OnChange: a.onVolumeChange})
 	return a
+}
+
+// Version returns the build version shown in the window footer.
+func (a *App) Version() string {
+	return version
 }
 
 // GetState returns the current state.
@@ -169,10 +171,6 @@ func (a *App) showWindow() {
 	runtime.WindowShow(a.ctx)
 }
 
-func (a *App) hideWindow() {
-	runtime.WindowHide(a.ctx)
-}
-
 func (a *App) quit() {
 	systray.Quit()
 	runtime.Quit(a.ctx)
@@ -187,26 +185,8 @@ func (a *App) onWailsShutdown(context.Context) {
 	a.shutdown()
 }
 
-// setStartupFromMenu handles the Options menu item. Wails has already flipped
-// the checkmark, so the value passed in is the new one.
-func (a *App) setStartupFromMenu(want bool) {
-	if _, err := a.SetStartupEnabled(want); err != nil {
-		runtime.MessageDialog(a.ctx, runtime.MessageDialogOptions{
-			Type:    runtime.ErrorDialog,
-			Title:   "Startup",
-			Message: fmt.Sprintf("Could not change the Windows startup setting: %v", err),
-		})
-	}
-}
-
-// syncStartup makes the menu checkmark and the UI checkbox show the stored value.
+// syncStartup tells the UI which startup value is stored.
 func (a *App) syncStartup(on bool) {
-	if a.startupItem != nil {
-		a.startupItem.Checked = on
-		if a.ctx != nil {
-			runtime.MenuUpdateApplicationMenu(a.ctx)
-		}
-	}
 	if a.ctx != nil {
 		runtime.EventsEmit(a.ctx, "startup", on)
 	}

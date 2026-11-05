@@ -2,13 +2,12 @@
 @tailwind components;
 @tailwind utilities;
 
-html {
-    background-color: #18191B;
-    text-align: center;
-    color: white;
-    user-select: none;
-}
-
+// Matches the Radix dark "sand" background and the window colour set in main.go,
+// so nothing flashes while the page loads.
+html,
 body {
     margin: 0;
+    background-color: #111110;
+    color: white;
+    user-select: none;
 }

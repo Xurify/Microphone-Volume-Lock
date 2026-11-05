@@ -1,13 +1,14 @@
 import { useEffect, useRef, useState } from "react";
-import { Checkbox, Flex, Slider, Text } from "@radix-ui/themes";
+import { Checkbox, Slider } from "@radix-ui/themes";
 import {
   GetState,
   IsStartupEnabled,
   SetLevel,
   SetStartupEnabled,
   ToggleLock,
+  Version,
 } from "../wailsjs/go/main/App";
-import { EventsOn } from "../wailsjs/runtime/runtime";
+import { EventsOn, Quit, WindowHide } from "../wailsjs/runtime/runtime";
 import { main } from "../wailsjs/go/models";
 import Button from "./components/ui/Button";
 
@@ -42,20 +43,20 @@ function StatusPill({ state }: { state: main.State }) {
   let tone: string;
   let label: string;
   if (!state.available) {
-    tone = "bg-amber-400/15 text-amber-300";
+    tone = "bg-[var(--amber-a3)] text-[var(--amber-11)]";
     label = state.locked ? "Waiting" : "No mic";
   } else if (state.locked) {
-    tone = "bg-blue-500/20 text-blue-200";
+    tone = "bg-[var(--accent-a4)] text-[var(--accent-11)]";
     label = "Locked";
   } else {
-    tone = "bg-white/10 text-gray-300";
+    tone = "bg-[var(--gray-a3)] text-[var(--gray-11)]";
     label = "Unlocked";
   }
   return (
     <span
       role="status"
       aria-live="polite"
-      className={`inline-flex shrink-0 items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-medium ${tone}`}
+      className={`mb-1 inline-flex shrink-0 items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-medium ${tone}`}
     >
       {state.locked && state.available && <LockIcon />}
       {label}
@@ -66,6 +67,7 @@ function StatusPill({ state }: { state: main.State }) {
 function App() {
   const [state, setState] = useState<main.State | null>(null);
   const [startup, setStartup] = useState(false);
+  const [version, setVersion] = useState("");
   const [busy, setBusy] = useState(false);
   const [actionError, setActionError] = useState("");
   // While the user drags, the slider shows this value instead of the backend's.
@@ -74,6 +76,8 @@ function App() {
   const sliderRoot = useRef<HTMLDivElement>(null);
   const pendingLevel = useRef<number | null>(null);
   const sending = useRef(false);
+  const startupRef = useRef(startup);
+  startupRef.current = startup;
 
   useEffect(() => {
     let active = true;
@@ -84,6 +88,9 @@ function App() {
     IsStartupEnabled()
       .then((on) => active && setStartup(on))
       .catch((e) => active && setActionError(errorText(e)));
+    Version()
+      .then((v) => active && setVersion(v))
+      .catch(() => {});
 
     const offState = EventsOn("state", (s: main.State) => setState(s));
     const offStartup = EventsOn("startup", (on: boolean) => setStartup(on));
@@ -92,6 +99,26 @@ function App() {
       offState();
       offStartup();
     };
+  }, []);
+
+  // The window has no menu bar, so its old shortcuts live here.
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if (!e.ctrlKey || e.altKey || e.shiftKey || e.metaKey) return;
+      const key = e.key.toLowerCase();
+      if (key === "h") {
+        e.preventDefault();
+        WindowHide();
+      } else if (key === "q") {
+        e.preventDefault();
+        Quit();
+      } else if (key === "s") {
+        e.preventDefault();
+        void handleStartup(!startupRef.current);
+      }
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
   }, []);
 
   // Radix labels a slider thumb only from props the thumb itself receives, so
@@ -141,7 +168,7 @@ function App() {
     }
   };
 
-  const handleStartup = async (want: boolean) => {
+  async function handleStartup(want: boolean) {
     setActionError("");
     try {
       setStartup(await SetStartupEnabled(want));
@@ -149,33 +176,35 @@ function App() {
       setActionError(errorText(e));
       setStartup(await IsStartupEnabled().catch(() => !want));
     }
-  };
+  }
 
   if (!state) {
-    return <div className="h-full" aria-busy="true" />;
+    return <div aria-busy="true" />;
   }
 
   const level = draft ?? state.target;
   const problem = actionError || state.message;
 
   return (
-    <div className="app flex flex-col gap-3 px-5 py-4 text-left">
+    <div className="app flex flex-col gap-4 px-5 pb-3 pt-4 text-left">
       <header className="flex items-end justify-between gap-3">
         <div className="min-w-0">
           {problem ? (
             <p
               role="alert"
               title={problem}
-              className="truncate text-xs text-amber-300"
+              className="truncate text-xs text-[var(--amber-11)]"
             >
               {problem}
             </p>
           ) : (
-            <p className="text-xs text-gray-400">Microphone volume</p>
+            <p className="text-xs text-[var(--gray-11)]">Microphone volume</p>
           )}
-          <p className="text-[2.5rem] font-semibold leading-none tabular-nums">
+          <p className="mt-1 text-[2.75rem] font-semibold leading-none tracking-tight tabular-nums text-[var(--gray-12)]">
             {level}
-            <span className="ml-0.5 text-xl font-medium text-gray-400">%</span>
+            <span className="ml-1 text-xl font-medium text-[var(--gray-10)]">
+              %
+            </span>
           </p>
         </div>
         <StatusPill state={state} />
@@ -189,7 +218,6 @@ function App() {
           value={[level]}
           onValueChange={handleSlider}
           disabled={!state.available}
-          className="w-full"
         />
       </div>
 
@@ -203,16 +231,22 @@ function App() {
         {state.locked ? "Unlock" : `Lock at ${level}%`}
       </Button>
 
-      <Text as="label" size="2" color="gray">
-        <Flex align="center" gap="2">
+      <footer className="flex items-center justify-between border-t border-[var(--gray-a4)] pt-3 text-xs text-[var(--gray-11)]">
+        <label className="flex cursor-pointer items-center gap-2">
           <Checkbox
             size="1"
             checked={startup}
             onCheckedChange={(v) => handleStartup(v === true)}
           />
           Start with Windows
-        </Flex>
-      </Text>
+        </label>
+        <span
+          className="text-[var(--gray-10)]"
+          title="Ctrl+H hides to the tray · Ctrl+Q quits"
+        >
+          {version && version !== "dev" ? `v${version}` : "Ctrl+H to hide"}
+        </span>
+      </footer>
     </div>
   );
 }
