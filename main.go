@@ -18,7 +18,7 @@ var assets embed.FS
 var iconBytes []byte
 
 // Keep in sync with info.productVersion in wails.json.
-var version = "1.1.0"
+var version = "1.2.0"
 
 const (
 	uniqueID        = "com.xurify.microphone-volume-lock"
