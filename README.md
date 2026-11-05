@@ -118,7 +118,7 @@ If `state.json` is damaged, it is renamed to `state.json.corrupt` and the defaul
 - `paths.go`: App data folder and logging
 - `audio_windows.go`: Core Audio access for the default recording device
 - `startup_windows.go`: Windows startup entry (registry)
-- `legacy_windows.go`: Stops copies of the old nircmd helper left by version 1.0
+- `legacy_windows.go`: Stops copies of the old nircmd helper left by version 1.1
 - `internal/volumelock/`: The lock policy (target level, drift correction, device errors)
 - `internal/appstate/`: Atomic load and save of the settings file
 - `frontend/`: React frontend
