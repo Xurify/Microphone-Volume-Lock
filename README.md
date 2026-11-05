@@ -63,7 +63,10 @@ GOOS=windows go vet ./...
 wails build
 ```
 
-To release a new version, change `info.productVersion` in `wails.json` and `version` in `main.go` together.
+To release a new version:
+1. Set the same version in `info.productVersion` in `wails.json` and `version` in `main.go`.
+2. Add release notes as `.github/release-notes/v<version>.md`.
+3. Merge to `master`, then run the **Release** workflow in GitHub Actions with the version (for example `1.2.0`). It tests, builds the exe and installer on Windows, creates the `v<version>` tag and publishes the release with SHA-256 checksums.
 
 To build the installer as well:
 ```bash
@@ -118,7 +121,7 @@ If `state.json` is damaged, it is renamed to `state.json.corrupt` and the defaul
 - `paths.go`: App data folder and logging
 - `audio_windows.go`: Core Audio access for the default recording device
 - `startup_windows.go`: Windows startup entry (registry)
-- `legacy_windows.go`: Stops copies of the old nircmd helper left by version 1.0
+- `legacy_windows.go`: Stops copies of the old nircmd helper left by version 1.1
 - `internal/volumelock/`: The lock policy (target level, drift correction, device errors)
 - `internal/appstate/`: Atomic load and save of the settings file
 - `frontend/`: React frontend
