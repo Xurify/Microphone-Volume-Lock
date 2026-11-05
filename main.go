@@ -17,8 +17,9 @@ var assets embed.FS
 //go:embed build/windows/icon.ico
 var iconBytes []byte
 
-// version is set at build time: -ldflags "-X main.version=1.1.0".
-var version = "dev"
+// version must match info.productVersion in wails.json, which the installer
+// and the Windows file properties use.
+var version = "1.1.0"
 
 const (
 	// uniqueID identifies the running instance to Wails' single-instance check.

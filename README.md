@@ -63,9 +63,11 @@ GOOS=windows go vet ./...
 wails build
 ```
 
-To set the version shown in the About dialog:
+To release a new version, change `info.productVersion` in `wails.json` and `version` in `main.go` together.
+
+To build the installer as well:
 ```bash
-wails build -ldflags "-X main.version=1.1.0"
+wails build -nsis
 ```
 
 The built executable will be in the `build/bin` directory.

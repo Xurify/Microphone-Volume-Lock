@@ -105,6 +105,9 @@ func (a *App) SetStartupEnabled(enabled bool) (bool, error) {
 func (a *App) startup(ctx context.Context) {
 	a.ctx = ctx
 	cleanupLegacyNircmd()
+	if err := refreshStartupEntry(); err != nil {
+		log.Printf("refresh startup entry: %v", err)
+	}
 
 	path, err := statePath()
 	if err != nil {
