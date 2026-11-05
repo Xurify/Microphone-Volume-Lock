@@ -16,7 +16,6 @@ type State struct {
 	Locked bool    `json:"locked"`
 }
 
-// Default is the state used when nothing has been saved yet.
 func Default() State {
 	return State{Volume: 75}
 }

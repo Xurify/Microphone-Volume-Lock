@@ -17,7 +17,6 @@ type Device interface {
 	SetLevel(level float64) error
 }
 
-// Snapshot is the controller state as the UI sees it.
 type Snapshot struct {
 	Level     float64 // level the device reported on the last poll
 	Target    float64 // level the slider holds; follows the device while unlocked
@@ -44,7 +43,6 @@ const (
 	defaultTolerance = 0.005
 )
 
-// Controller enforces the lock on a Device. Use New to create one.
 type Controller struct {
 	dev  Device
 	opts Options
@@ -142,7 +140,6 @@ func (c *Controller) Unlock() error {
 	})
 }
 
-// Toggle locks when unlocked and unlocks when locked.
 func (c *Controller) Toggle() error {
 	return c.do(func() error {
 		if c.locked {
@@ -215,7 +212,7 @@ func (c *Controller) poll() error {
 	return nil
 }
 
-// write sets the device level and records the result. Caller holds mu.
+// Caller holds mu.
 func (c *Controller) write(level float64) error {
 	if err := c.dev.SetLevel(level); err != nil {
 		c.available, c.err = false, err
@@ -225,7 +222,7 @@ func (c *Controller) write(level float64) error {
 	return nil
 }
 
-// lockLocked turns the lock on at the current target. Caller holds mu.
+// Caller holds mu.
 func (c *Controller) lockLocked() error {
 	if c.locked {
 		return nil

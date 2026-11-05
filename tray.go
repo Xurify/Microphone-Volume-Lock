@@ -46,7 +46,6 @@ func (a *App) toggleFromTray() {
 	}
 }
 
-// updateTray shows the lock state in the menu item and the tooltip.
 func (a *App) updateTray(s volumelock.Snapshot) {
 	a.trayMu.Lock()
 	defer a.trayMu.Unlock()

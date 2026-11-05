@@ -77,7 +77,6 @@ func (d *captureDevice) run(ready chan<- error) {
 	}
 }
 
-// Level returns the default recording device's level on a 0–1 scale.
 func (d *captureDevice) Level() (float64, error) {
 	var level float64
 	err := d.call(func(st *comState) error {
@@ -96,7 +95,6 @@ func (d *captureDevice) Level() (float64, error) {
 	return level, err
 }
 
-// SetLevel sets the default recording device's level on a 0–1 scale.
 func (d *captureDevice) SetLevel(level float64) error {
 	return d.call(func(st *comState) error {
 		vol, err := st.endpoint()
@@ -111,7 +109,6 @@ func (d *captureDevice) SetLevel(level float64) error {
 	})
 }
 
-// Close stops the COM thread. Calls made afterwards return errDeviceClosed.
 func (d *captureDevice) Close() error {
 	d.once.Do(func() { close(d.quit) })
 	<-d.done

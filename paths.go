@@ -26,9 +26,6 @@ func statePath() (string, error) {
 	return filepath.Join(dir, "state.json"), nil
 }
 
-// setupLogging sends the standard logger to app.log in the app data folder,
-// starting a fresh file once the old one grows past maxLogBytes. The returned
-// function closes the file.
 func setupLogging() func() {
 	noop := func() {}
 	dir, err := appDataDir()

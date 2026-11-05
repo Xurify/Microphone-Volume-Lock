@@ -15,7 +15,6 @@ const (
 	runValueName = "MicrophoneVolumeLock"
 )
 
-// startupEnabled reports whether the Run entry exists.
 func startupEnabled() (bool, error) {
 	k, err := registry.OpenKey(registry.CURRENT_USER, runKeyPath, registry.QUERY_VALUE)
 	if err != nil {

@@ -27,7 +27,6 @@ func newSettingsSaver(path string, saved appstate.State) *settingsSaver {
 	return &settingsSaver{path: path, saved: saved}
 }
 
-// Want records st as the state to persist.
 func (s *settingsSaver) Want(st appstate.State) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
@@ -46,7 +45,6 @@ func (s *settingsSaver) Want(st appstate.State) {
 	s.timer = time.AfterFunc(saveDelay, s.Flush)
 }
 
-// Flush writes any pending state immediately.
 func (s *settingsSaver) Flush() {
 	s.mu.Lock()
 	defer s.mu.Unlock()

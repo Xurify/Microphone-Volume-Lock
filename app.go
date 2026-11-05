@@ -17,7 +17,6 @@ import (
 	"MicrophoneVolumeLock/internal/volumelock"
 )
 
-// endpoint is the audio device the lock controller drives.
 type endpoint interface {
 	volumelock.Device
 	Close() error
@@ -30,7 +29,6 @@ func (b brokenDevice) Level() (float64, error) { return 0, b.err }
 func (b brokenDevice) SetLevel(float64) error  { return b.err }
 func (b brokenDevice) Close() error            { return nil }
 
-// App is bound to the frontend. Its exported methods are the API the UI calls.
 type App struct {
 	ctx   context.Context
 	dev   endpoint
@@ -68,12 +66,10 @@ func NewApp() *App {
 	return a
 }
 
-// Version returns the build version shown in the window footer.
 func (a *App) Version() string {
 	return version
 }
 
-// GetState returns the current state.
 func (a *App) GetState() State {
 	return toState(a.ctl.Snapshot())
 }
@@ -85,19 +81,15 @@ func (a *App) SetLevel(percent float64) (State, error) {
 	return toState(a.ctl.Snapshot()), err
 }
 
-// ToggleLock locks the microphone at its current level, or releases the lock.
 func (a *App) ToggleLock() (State, error) {
 	err := a.ctl.Toggle()
 	return toState(a.ctl.Snapshot()), err
 }
 
-// IsStartupEnabled reports whether the app starts with Windows.
 func (a *App) IsStartupEnabled() (bool, error) {
 	return startupEnabled()
 }
 
-// SetStartupEnabled changes the Windows startup entry and returns the value
-// that is actually stored afterwards.
 func (a *App) SetStartupEnabled(enabled bool) (bool, error) {
 	err := setStartupEnabled(enabled)
 	now, readErr := startupEnabled()
@@ -129,8 +121,8 @@ func (a *App) startup(ctx context.Context) {
 	go systray.Run(a.onReady, a.onExit)
 }
 
-// shutdown stops the lock loop and releases the audio device. It runs once,
-// whether the app quits from the tray, the menu, or the OS.
+// shutdown is reached from both the tray Quit and Wails' OnShutdown, so it
+// guards itself to run once.
 func (a *App) shutdown() {
 	a.shutdownOnce.Do(func() {
 		a.ctl.Close()
@@ -143,8 +135,6 @@ func (a *App) shutdown() {
 	})
 }
 
-// onVolumeChange runs whenever the visible state changes. It keeps the saved
-// settings, the UI and the tray in step.
 func (a *App) onVolumeChange(s volumelock.Snapshot) {
 	if a.saver != nil {
 		a.saver.Want(appstate.State{Volume: math.Round(s.Target * 100), Locked: s.Locked})
@@ -180,12 +170,10 @@ func (a *App) onExit() {
 	a.shutdown()
 }
 
-// onWailsShutdown adapts shutdown to the signature Wails expects.
 func (a *App) onWailsShutdown(context.Context) {
 	a.shutdown()
 }
 
-// syncStartup tells the UI which startup value is stored.
 func (a *App) syncStartup(on bool) {
 	if a.ctx != nil {
 		runtime.EventsEmit(a.ctx, "startup", on)
