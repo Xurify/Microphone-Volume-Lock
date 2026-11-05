@@ -4,6 +4,7 @@ import (
 	"embed"
 	"log"
 	"os"
+	"slices"
 
 	"github.com/wailsapp/wails/v2"
 	"github.com/wailsapp/wails/v2/pkg/options"
@@ -16,27 +17,41 @@ var assets embed.FS
 //go:embed build/windows/icon.ico
 var iconBytes []byte
 
+// Keep in sync with info.productVersion in wails.json.
+var version = "1.1.0"
+
+const (
+	uniqueID        = "com.xurify.microphone-volume-lock"
+	startHiddenFlag = "--hidden"
+	contentHeight   = 226
+	titleBarHeight  = 32
+	windowHeight    = contentHeight + titleBarHeight
+)
+
 func main() {
-	fileLog, err := os.OpenFile("app.log", os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
-	if err == nil {
-		log.SetOutput(fileLog)
-	} else {
-		println("Failed to open log file:", err.Error())
-	}
+	closeLog := setupLogging()
+	defer closeLog()
 
 	app := NewApp()
 
-	err = wails.Run(&options.App{
-		Title:            "Microphone Volume Lock",
-		Width:            400,
-		Height:           215,
-		MaxWidth:         400,
-		MaxHeight:        215,
-		MinWidth:         300,
-		Assets:           assets,
-		BackgroundColour: &options.RGBA{R: 27, G: 27, B: 27, A: 1},
-		OnStartup:        app.startup,
-		Menu:             app.createMenu(),
+	err := wails.Run(&options.App{
+		Title:             "Microphone Volume Lock",
+		Width:             400,
+		Height:            windowHeight,
+		MinWidth:          300,
+		MaxWidth:          400,
+		MinHeight:         windowHeight,
+		MaxHeight:         windowHeight,
+		Assets:            assets,
+		BackgroundColour:  &options.RGBA{R: 17, G: 17, B: 16, A: 255},
+		StartHidden:       slices.Contains(os.Args[1:], startHiddenFlag),
+		HideWindowOnClose: true,
+		SingleInstanceLock: &options.SingleInstanceLock{
+			UniqueId:               uniqueID,
+			OnSecondInstanceLaunch: app.onSecondInstance,
+		},
+		OnStartup:  app.startup,
+		OnShutdown: app.shutdown,
 		Windows: &windows.Options{
 			WebviewIsTransparent: false,
 			WindowIsTranslucent:  false,
@@ -49,8 +64,7 @@ func main() {
 			app,
 		},
 	})
-
 	if err != nil {
-		println("Error:", err.Error())
+		log.Printf("wails: %v", err)
 	}
 }

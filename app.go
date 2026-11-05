@@ -1,352 +1,197 @@
 package main
 
 import (
-	"bytes"
 	"context"
-	_ "embed"
-	"fmt"
-	"io"
+	"errors"
 	"log"
-	"os"
-	"os/exec"
-	"path/filepath"
-	"syscall"
+	"math"
+	"slices"
+	"sync"
 
 	"github.com/getlantern/systray"
-	"github.com/wailsapp/wails/v2/pkg/menu"
-	"github.com/wailsapp/wails/v2/pkg/menu/keys"
+	"github.com/wailsapp/wails/v2/pkg/options"
 	"github.com/wailsapp/wails/v2/pkg/runtime"
-	"golang.org/x/sys/windows/registry"
+
+	"MicrophoneVolumeLock/internal/appstate"
+	"MicrophoneVolumeLock/internal/volumelock"
 )
 
-//go:embed nircmdc.exe
-var nircmdcBytes []byte
+type endpoint interface {
+	volumelock.Device
+	Close() error
+}
 
-const (
-	registryPath = `Software\Microsoft\Windows\CurrentVersion\Run`
-	appName      = "MicrophoneVolumeLock"
-)
+type brokenDevice struct{ err error }
+
+func (b brokenDevice) Level() (float64, error) { return 0, b.err }
+func (b brokenDevice) SetLevel(float64) error  { return b.err }
+func (b brokenDevice) Close() error            { return nil }
 
 type App struct {
-	ctx            context.Context
-	locked         bool
-	volume         float64
-	nircmdCmd      *exec.Cmd
-	tempNircmdPath string
+	ctx   context.Context
+	dev   endpoint
+	ctl   *volumelock.Controller
+	saver *settingsSaver
+
+	trayMu   sync.Mutex
+	lockItem *systray.MenuItem
+
+	shutdownOnce sync.Once
+}
+
+type State struct {
+	Level     int    `json:"level"`
+	Target    int    `json:"target"`
+	Locked    bool   `json:"locked"`
+	Available bool   `json:"available"`
+	Message   string `json:"message"`
 }
 
 func NewApp() *App {
-	state, err := loadState()
+	a := &App{}
+
+	var dev endpoint
+	captured, err := newCaptureDevice()
 	if err != nil {
-		return &App{
-			volume: 75,
-			locked: false,
-		}
+		log.Printf("audio: %v", err)
+		dev = brokenDevice{err: err}
+	} else {
+		dev = captured
 	}
-
-	app := &App{
-		volume: state.Volume,
-		locked: state.Locked,
-	}
-
-	return app
+	a.dev = dev
+	a.ctl = volumelock.New(dev, volumelock.Options{OnChange: a.onVolumeChange})
+	return a
 }
 
-func (a *App) createMenu() *menu.Menu {
-	appMenu := menu.NewMenu()
+func (a *App) Version() string {
+	return version
+}
 
-	// File Menu
-	fileMenu := appMenu.AddSubmenu("File")
-	fileMenu.AddText("Hide to Tray", keys.CmdOrCtrl("H"), func(_ *menu.CallbackData) {
-		a.HideWindow()
-	})
-	fileMenu.AddSeparator()
-	fileMenu.AddText("Exit", keys.CmdOrCtrl("Q"), func(_ *menu.CallbackData) {
-		a.stopNircmd()
-		a.cleanupTempFiles()
-		runtime.Quit(a.ctx)
-	})
+func (a *App) GetState() State {
+	return toState(a.ctl.Snapshot())
+}
 
-	// Options Menu
-	optionsMenu := appMenu.AddSubmenu("Options")
-	startupEnabled, _ := a.IsStartupEnabled()
-	optionsMenu.AddCheckbox("Run at Windows Startup", startupEnabled, keys.CmdOrCtrl("S"), func(_ *menu.CallbackData) {
-		if err := a.SetStartupEnabled(startupEnabled); err != nil {
-			runtime.MessageDialog(a.ctx, runtime.MessageDialogOptions{
-				Type:    runtime.ErrorDialog,
-				Title:   "Error",
-				Message: fmt.Sprintf("Failed to set startup option: %v", err),
-			})
-		}
-	})
+func (a *App) SetLevel(percent float64) (State, error) {
+	err := a.ctl.SetLevel(percent / 100)
+	return toState(a.ctl.Snapshot()), err
+}
 
-	// Help Menu
-	helpMenu := appMenu.AddSubmenu("Help")
-	helpMenu.AddText("About", nil, func(_ *menu.CallbackData) {
-		runtime.MessageDialog(a.ctx, runtime.MessageDialogOptions{
-			Type:    runtime.InfoDialog,
-			Title:   "About",
-			Message: "Microphone Volume Lock v1.0\nA tool to lock your microphone volume.",
-		})
-	})
+func (a *App) ToggleLock() (State, error) {
+	err := a.ctl.Toggle()
+	return toState(a.ctl.Snapshot()), err
+}
 
-	return appMenu
+func (a *App) IsStartupEnabled() (bool, error) {
+	return startupEnabled()
+}
+
+func (a *App) SetStartupEnabled(enabled bool) (bool, error) {
+	err := setStartupEnabled(enabled)
+	now, readErr := startupEnabled()
+	if readErr == nil {
+		a.syncStartup(now)
+	}
+	if err == nil {
+		err = readErr
+	}
+	return now, err
 }
 
 func (a *App) startup(ctx context.Context) {
 	a.ctx = ctx
-	if a.locked {
-		err := a.setMicrophoneVolume(a.volume)
-		if err != nil {
-			a.locked = false
-			_ = a.saveCurrentState()
-		}
+	cleanupLegacyNircmd()
+	if err := refreshStartupEntry(); err != nil {
+		log.Printf("refresh startup entry: %v", err)
 	}
+
+	path, err := statePath()
+	if err != nil {
+		log.Printf("settings path: %v", err)
+	}
+	saved, err := appstate.Load(path)
+	if err != nil {
+		log.Printf("settings: %v", err)
+	}
+	a.saver = newSettingsSaver(path, saved)
+
+	a.ctl.Restore(saved.Volume/100, saved.Locked)
+	a.ctl.Run()
 	go systray.Run(a.onReady, a.onExit)
 }
 
-func (a *App) saveCurrentState() error {
-	return saveState(AppState{
-		Volume: a.volume,
-		Locked: a.locked,
-	})
-}
-
-func (a *App) SetVolume(volume float64) error {
-	if !a.locked {
-		a.volume = volume
-		return a.saveCurrentState()
-	}
-	return fmt.Errorf("volume is locked")
-}
-
-func (a *App) GetVolume() float64 {
-	return a.volume
-}
-
-func (a *App) IsLocked() bool {
-	return a.locked
-}
-
-func (a *App) ToggleLock() error {
-	if a.locked {
-		a.locked = false
-		a.stopNircmd()
-	} else {
-		a.locked = true
-		err := a.setMicrophoneVolume(a.volume)
-		if err != nil {
-			a.locked = false
-			return err
+func (a *App) shutdown(context.Context) {
+	a.shutdownOnce.Do(func() {
+		a.ctl.Close()
+		if a.saver != nil {
+			a.saver.Flush()
 		}
-	}
-
-	return a.saveCurrentState()
-}
-
-func (a *App) setMicrophoneVolume(volume float64) error {
-	nircmdPath, err := a.extractEmbeddedNircmd()
-	if err != nil {
-		runtime.MessageDialog(a.ctx, runtime.MessageDialogOptions{
-			Type:    runtime.ErrorDialog,
-			Title:   "Error",
-			Message: fmt.Sprintf("Failed to find nircmdc.exe: %v", err),
-		})
-		return err
-	}
-
-	log.Printf("Using nircmdc.exe at: %s", nircmdPath)
-
-	volumeInt := int(volume / 100 * 65535)
-	a.nircmdCmd = exec.Command(nircmdPath, "loop", "172800", "500", "setsysvolume", fmt.Sprintf("%d", volumeInt), "default_record")
-	a.nircmdCmd.SysProcAttr = &syscall.SysProcAttr{
-		HideWindow: true,
-	}
-	err = a.nircmdCmd.Start()
-	if err != nil {
-		runtime.MessageDialog(a.ctx, runtime.MessageDialogOptions{
-			Type:    runtime.ErrorDialog,
-			Title:   "Error",
-			Message: fmt.Sprintf("Failed to set volume: %v", err),
-		})
-		return err
-	}
-	return nil
-}
-
-func (a *App) extractEmbeddedNircmd() (string, error) {
-	if a.tempNircmdPath != "" {
-		if _, err := os.Stat(a.tempNircmdPath); err == nil {
-			return a.tempNircmdPath, nil
-		}
-	}
-
-	tempDir := os.TempDir()
-	tempFile, err := os.CreateTemp(tempDir, "nircmdc_*.exe")
-	if err != nil {
-		return "", fmt.Errorf("failed to create temporary file: %v", err)
-	}
-	defer tempFile.Close()
-
-	_, err = io.Copy(tempFile, bytes.NewReader(nircmdcBytes))
-	if err != nil {
-		os.Remove(tempFile.Name())
-		return "", fmt.Errorf("failed to write embedded executable: %v", err)
-	}
-
-	a.tempNircmdPath = tempFile.Name()
-	log.Printf("Extracted embedded nircmdc.exe to: %s", a.tempNircmdPath)
-	return a.tempNircmdPath, nil
-}
-
-func (a *App) stopNircmd() {
-	if a.nircmdCmd != nil && a.nircmdCmd.Process != nil {
-		nircmdKillCmd := exec.Command("taskkill", "/F", "/T", "/PID", fmt.Sprintf("%d", a.nircmdCmd.Process.Pid))
-		nircmdKillCmd.SysProcAttr = &syscall.SysProcAttr{
-			HideWindow: true,
-		}
-		err := nircmdKillCmd.Start()
-		if err != nil {
-			runtime.MessageDialog(a.ctx, runtime.MessageDialogOptions{
-				Type:    runtime.ErrorDialog,
-				Title:   "Error",
-				Message: fmt.Sprintf("Error stopping nircmd: %v", err),
-			})
-		}
-		a.nircmdCmd = nil
-	}
-}
-
-func (a *App) IsStartupEnabled() (bool, error) {
-	k, err := registry.OpenKey(registry.CURRENT_USER, registryPath, registry.QUERY_VALUE)
-	if err != nil {
-		return false, err
-	}
-	defer k.Close()
-
-	val, _, err := k.GetStringValue(appName)
-	if err == registry.ErrNotExist {
-		return false, nil
-	}
-	if err != nil {
-		return false, err
-	}
-
-	return val != "", nil
-}
-
-func (a *App) SetStartupEnabled(enabled bool) error {
-	k, err := registry.OpenKey(registry.CURRENT_USER, registryPath, registry.SET_VALUE)
-	if err != nil {
-		return err
-	}
-	defer k.Close()
-
-	if enabled {
-		execPath, err := os.Executable()
-		if err != nil {
-			return err
-		}
-		execPath = filepath.Clean(execPath)
-		err = k.SetStringValue(appName, execPath)
-		if err != nil {
-			return err
-		}
-	} else {
-		err = k.DeleteValue(appName)
-		if err != nil && err != registry.ErrNotExist {
-			return err
-		}
-	}
-
-	return nil
-}
-
-func (a *App) StopAllNircmd() {
-	cmd := exec.Command("taskkill", "/IM", "nircmdc.exe", "/F")
-	cmd.SysProcAttr = &syscall.SysProcAttr{
-		HideWindow: true,
-	}
-	err := cmd.Start()
-	if err != nil {
-		runtime.MessageDialog(a.ctx, runtime.MessageDialogOptions{
-			Type:    runtime.ErrorDialog,
-			Title:   "Error",
-			Message: fmt.Sprintf("Error stopping all nircmd processes: %v", err),
-		})
-	}
-}
-
-func (a *App) onReady() {
-	systray.SetIcon(getIcon())
-	systray.SetTitle("Microphone Volume Lock")
-	systray.SetTooltip("Microphone Volume Lock")
-
-	showItem := systray.AddMenuItem("Show", "Show the application window")
-	lockItem := systray.AddMenuItem("Lock Volume", "Lock/Unlock microphone volume")
-	systray.AddSeparator()
-	quitItem := systray.AddMenuItem("Quit", "Quit the application")
-
-	go func() {
-		for {
-			select {
-			case <-showItem.ClickedCh:
-				runtime.WindowShow(a.ctx)
-			case <-lockItem.ClickedCh:
-				if err := a.ToggleLock(); err != nil {
-					fmt.Printf("Error toggling lock: %v\n", err)
-				}
-				if a.IsLocked() {
-					lockItem.SetTitle("Unlock Volume")
-					runtime.EventsEmit(a.ctx, "lock-state-changed", true)
-				} else {
-					lockItem.SetTitle("Lock Volume")
-					runtime.EventsEmit(a.ctx, "lock-state-changed", false)
-				}
-			case <-quitItem.ClickedCh:
-				a.stopNircmd()
-				a.cleanupTempFiles()
-				systray.Quit()
-				runtime.Quit(a.ctx)
-				return
-			}
-		}
-	}()
-
-	runtime.EventsOn(a.ctx, "update-tray-lock", func(data ...interface{}) {
-		if len(data) > 0 {
-			if isLocked, ok := data[0].(bool); ok {
-				text := "Lock Volume"
-				if isLocked {
-					text = "Unlock Volume"
-				}
-				lockItem.SetTitle(text)
-			}
+		if err := a.dev.Close(); err != nil {
+			log.Printf("close audio device: %v", err)
 		}
 	})
 }
 
-func (a *App) cleanupTempFiles() {
-	if a.tempNircmdPath != "" {
-		if err := os.Remove(a.tempNircmdPath); err != nil {
-			log.Printf("Failed to remove temporary nircmdc.exe: %v", err)
-		} else {
-			log.Printf("Cleaned up temporary file: %s", a.tempNircmdPath)
-		}
-		a.tempNircmdPath = ""
+func (a *App) onVolumeChange(s volumelock.Snapshot) {
+	if s.Err != nil {
+		log.Printf("microphone: %v", s.Err)
 	}
+	if a.saver != nil {
+		a.saver.Want(appstate.State{Volume: math.Round(s.Target * 100), Locked: s.Locked})
+	}
+	if a.ctx == nil {
+		return
+	}
+	runtime.EventsEmit(a.ctx, "state", toState(s))
+	a.updateTray(s)
+}
+
+func (a *App) onSecondInstance(data options.SecondInstanceData) {
+	if slices.Contains(data.Args, startHiddenFlag) {
+		return
+	}
+	a.showWindow()
+}
+
+func (a *App) showWindow() {
+	runtime.WindowUnminimise(a.ctx)
+	runtime.WindowShow(a.ctx)
+}
+
+func (a *App) Quit() {
+	systray.Quit()
+	runtime.Quit(a.ctx)
 }
 
 func (a *App) onExit() {
-	a.stopNircmd()
-	a.cleanupTempFiles()
-	_ = a.saveCurrentState()
+	a.shutdown(a.ctx)
 }
 
-func (a *App) HideWindow() {
-	runtime.WindowHide(a.ctx)
+func (a *App) syncStartup(on bool) {
+	if a.ctx != nil {
+		runtime.EventsEmit(a.ctx, "startup", on)
+	}
 }
 
-func getIcon() []byte {
-	return iconBytes
+func toState(s volumelock.Snapshot) State {
+	st := State{
+		Level:     percent(s.Level),
+		Target:    percent(s.Target),
+		Locked:    s.Locked,
+		Available: s.Available,
+	}
+	if s.Err != nil {
+		st.Message = userMessage(s.Err)
+	}
+	return st
+}
+
+func userMessage(err error) string {
+	if errors.Is(err, errNoMicrophone) {
+		return "No microphone found."
+	}
+	return "Microphone is not responding. Retrying…"
+}
+
+func percent(v float64) int {
+	return int(math.Round(v * 100))
 }

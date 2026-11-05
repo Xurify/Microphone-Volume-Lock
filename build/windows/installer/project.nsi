@@ -104,6 +104,8 @@ Section "uninstall"
 
     RMDir /r $INSTDIR
 
+    DeleteRegValue HKCU "Software\Microsoft\Windows\CurrentVersion\Run" "MicrophoneVolumeLock"
+
     Delete "$SMPROGRAMS\${INFO_PRODUCTNAME}.lnk"
     Delete "$DESKTOP\${INFO_PRODUCTNAME}.lnk"
 
